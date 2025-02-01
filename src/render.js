@@ -69,6 +69,9 @@ export default function render (test) {
 			let tr = testRows.get(target.test);
 			tr.cells[1].textContent = output(target.actual);
 			tr.classList.add(target.pass ? "pass" : "fail");
+			if (target.test.skip) {
+				tr.classList.add("skipped");
+			}
 			tr.dataset.time = formatDuration(target.timeTaken);
 		}
 	});

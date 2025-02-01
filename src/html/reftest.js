@@ -233,11 +233,13 @@ export default class RefTest {
 
 	static updateResults () {
 		this.results = {
-			pass: $$("table.reftest:not(.ignore) tr.pass:not(.ignore)"),
-			fail: $$("table.reftest:not(.ignore) tr.fail:not(.ignore)"),
+			pass: $$("table.reftest:not(.skipped) tr.pass:not(.skipped)"),
+			fail: $$("table.reftest:not(.skipped) tr.fail:not(.skipped)"),
+			skipped: $$("table.reftest tr.skipped"),
 			current: {
 				pass: -1,
 				fail: -1,
+				skipped: -1,
 			},
 			// interactive: $$("table.reftest tr.interactive")
 		};
@@ -245,14 +247,16 @@ export default class RefTest {
 		let detail = {
 			pass: this.results.pass.length,
 			fail: this.results.fail.length,
+			skipped: this.results.skipped.length,
 		};
 
 		document.body.style.setProperty("--pass", detail.pass);
 		document.body.style.setProperty("--fail", detail.fail);
+		document.body.style.setProperty("--skipped", detail.skipped);
 
 		document.body.classList.toggle("no-passed", detail.pass === 0);
 		document.body.classList.toggle("no-failed", detail.fail === 0);
-
+		document.body.classList.toggle("no-skipped", detail.skipped === 0);
 		// $(".count-interactive", RefTest.nav).textContent = RefTest.results.interactive.length;
 
 		document.dispatchEvent(new CustomEvent("testresultsupdate", {detail}));

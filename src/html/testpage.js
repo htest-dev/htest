@@ -138,7 +138,7 @@ let nav = create({
 			href: "index.html",
 			target: "_top",
 		} : undefined,
-		...["fail", "pass"].map(type => {
+		...["fail", "pass", "skipped"].map(type => {
 			return {
 				className: "count-" + type,
 				contents: [

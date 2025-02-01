@@ -7,9 +7,11 @@
 	--color-dark: hsl(200, 50%, 40%);
 	--color-pass: hsl(80, 70%, 75%);
 	--color-fail: hsl(0, 70%, 90%);
+	--color-skipped: hsl(0, 0%, 85%);
 	--color-error: hsl(0, 70%, 70%);
 	--color-pass-darker: hsl(80, 70%, 40%);
 	--color-fail-darker: hsl(0, 70%, 48%);
+	--color-skipped-darker: hsl(0, 0%, 48%);
 	--color-error-darker: hsl(0, 70%, 40%);
 	--font-base: system-ui, "Helvetica Neue", "Segoe UI", sans-serif;
 }
@@ -78,6 +80,11 @@ h1 {
 	--dark-color: var(--color-fail-darker);
 }
 
+.skipped, .count-skipped {
+	--color: var(--color-skipped);
+	--dark-color: var(--color-skipped-darker);
+}
+
 .error {
 	--color: var(--color-error);
 	--dark-color: var(--color-error-darker);
@@ -89,7 +96,7 @@ html:not(.index) {
 		max-width: calc(100vw - 5em);
 		padding-top: 2em;
 
-		counter-reset: passed var(--pass, 0) failed var(--fail, 0);
+		counter-reset: passed var(--pass, 0) failed var(--fail, 0) skipped var(--skipped, 0);
 	}
 
 	& body > nav {
@@ -126,7 +133,8 @@ html:not(.index) {
 		}
 
 		& .count-fail,
-		& .count-pass {
+		& .count-pass,
+		& .count-skipped {
 			flex-shrink: 0;
 			min-width: 0;
 			align-items: center;
@@ -152,8 +160,15 @@ html:not(.index) {
 			}
 		}
 
+		.count-skipped {
+			.count::before {
+				content: counter(skipped);
+			}
+		}
+
 		.count-fail:is(.no-failed *),
-		.count-pass:is(.no-passed *) {
+		.count-pass:is(.no-passed *),
+		.count-skipped:is(.no-skipped *) {
 			display: none;
 		}
 
@@ -197,11 +212,23 @@ html:not(.index) {
 			}
 		}
 
+		& .count-skipped {
+			flex-grow: var(--skipped, 1);
+
+			& .count::after {
+				content: "skipped";
+			}
+		}
+
 		&[style*="--fail:0;"] .count-fail {
 			display: none;
 		}
 
 		&[style*="--pass:0;"] .count-pass {
+			display: none;
+		}
+
+		&[style*="--skipped:0;"] .count-skipped {
 			display: none;
 		}
 	}
@@ -310,18 +337,18 @@ table.reftest {
 		}
 	}
 
-	&.ignore tr,
-	& tr.ignore {
-		--append: " (Ignored)";
+	&.skipped tr,
+	& tr.skipped {
+		--append: " (Skipped)";
 
 		&.fail {
-			--append: " (Known failure, ignored)"
+			--append: " (skipped)"
 		}
 	}
 
 	& tr[title],
-	&.ignore tr,
-	& tr.ignore {
+	&.skipped tr,
+	& tr.skipped {
 		& td {
 			padding-top: 1.5em;
 		}

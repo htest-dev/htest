@@ -24,7 +24,7 @@ function runSelected (names) {
 	});
 
 	function updateTotals () {
-		let totals = {pass: 0, fail: 0};
+		let totals = {pass: 0, fail: 0, skipped: 0};
 
 		tests.forEach(iframe => {
 			let doc = iframe.contentDocument;
@@ -35,11 +35,12 @@ function runSelected (names) {
 
 			totals.pass += +doc.body.style.getPropertyValue("--pass");
 			totals.fail += +doc.body.style.getPropertyValue("--fail");
+			totals.skipped += +doc.body.style.getPropertyValue("--skipped");
 		});
 
 		let totalsEl = document.querySelector("h1 + .totals") || create({className: "totals", after: document.querySelector("h1")});
 
-		totalsEl.innerHTML = `<strong>${totals.pass}</strong> passing, <strong>${totals.fail}</strong> failing of ${totals.pass + totals.fail} total`;
+		totalsEl.innerHTML = `<strong>${totals.pass}</strong> passing, <strong>${totals.fail}</strong> failing, <strong>${totals.skipped}</strong> skipped of ${totals.pass + totals.fail + totals.skipped} total`;
 	}
 }
 

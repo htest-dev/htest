@@ -83,6 +83,27 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
+		// If not specified, give the test 10s to run
+		let timeout = this.test.maxTime ?? this.test.maxTimeAsync ?? this.options.timeout ?? 10000;
+
+		// Add a buffer to account for the time it takes to evaluate the test
+		timeout += 500;
+
+		let timeoutId = setTimeout(() => {
+			this.error = new Error("Timed out");
+			this.timeTaken = timeout;
+
+			if (this.test.throws !== undefined) {
+				// We might expect this kind of error, so we evaluate the test to get a result
+				Object.assign(this, this.evaluateThrown());
+			}
+			else {
+				this.pass = false;
+			}
+
+			this.dispatchEvent(new Event("done", {bubbles: true}));
+		}, timeout);
+
 		this.messages = await interceptConsole(async () => {
 			if (!this.parent) {
 				// We are running the test in isolation, so we need to run beforeAll (if it exists)
@@ -114,6 +135,10 @@ export default class TestResult extends BubblingEventTarget {
 				}
 			}
 		});
+
+		// If we are here, the test didn't timeout
+		// Clean up
+		clearTimeout(timeoutId);
 
 		this.evaluate();
 	}

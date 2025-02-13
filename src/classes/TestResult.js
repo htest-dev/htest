@@ -83,18 +83,33 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
+		let test = this.test;
+
+		let timeoutId;
+		if (test.maxTime || test.maxTimeAsync) {
+			// Add a buffer to account for the time it takes to evaluate the test
+			let timeout = Math.max(test.maxTime ?? 0, test.maxTimeAsync ?? 0) + 50;
+
+			timeoutId = setTimeout(() => {
+				this.error = new Error("Timed out");
+				this.timeTaken = timeout;
+
+				this.evaluate();
+			}, timeout);
+		}
+
 		this.messages = await interceptConsole(async () => {
 			if (!this.parent) {
 				// We are running the test in isolation, so we need to run beforeAll (if it exists)
-				await this.test.beforeAll?.();
+				await test.beforeAll?.();
 			}
 
-			await this.test.beforeEach?.();
+			await test.beforeEach?.();
 
 			let start = performance.now();
 
 			try {
-				this.actual = this.test.run ? this.test.run.apply(this.test, this.test.args) : this.test.args[0];
+				this.actual = test.run ? test.run.apply(test, test.args) : test.args[0];
 				this.timeTaken = performance.now() - start;
 
 				if (this.actual instanceof Promise) {
@@ -106,14 +121,20 @@ export default class TestResult extends BubblingEventTarget {
 				this.error = e;
 			}
 			finally {
-				await this.test.afterEach?.();
+				await test.afterEach?.();
 
 				if (!this.parent) {
 					// We are running the test in isolation, so we need to run afterAll
-					await this.test.afterAll?.();
+					await test.afterAll?.();
 				}
 			}
 		});
+
+		if (timeoutId) {
+			// If we are here, the test didn't timeout
+			// Clean up
+			clearTimeout(timeoutId);
+		}
 
 		this.evaluate();
 	}
@@ -186,7 +207,7 @@ export default class TestResult extends BubblingEventTarget {
 		if (test.throws !== undefined) {
 			Object.assign(this, this.evaluateThrown());
 		}
-		else if (test.maxTime || test.maxTimeAsync) {
+		else if (test.expect === undefined && (test.maxTime || test.maxTimeAsync)) {
 			Object.assign(this, this.evaluateTimeTaken());
 		}
 		else {
@@ -360,6 +381,13 @@ ${ this.error.stack }`);
 	evaluateTimeTaken () {
 		let test = this.test;
 		let ret = {pass: true, details: []};
+
+		if (this.error && this.error.message.includes("Timed out")) {
+			ret.pass = false;
+			ret.details.push(`Test timed out after ${ this.timeTaken }ms`);
+
+			return ret;
+		}
 
 		if (test.maxTime) {
 			ret.pass &&= this.timeTaken <= test.maxTime;

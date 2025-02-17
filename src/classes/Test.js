@@ -76,11 +76,6 @@ export default class Test {
 		if (this.isGroup) {
 			this.tests = this.tests.filter(Boolean).map(t => t instanceof Test ? t : new Test(t, this));
 		}
-		else {
-			if (!("args" in this)) {
-				this.args = [];
-			}
-		}
 
 		if (!("expect" in this)) {
 			if (this.getExpect) {

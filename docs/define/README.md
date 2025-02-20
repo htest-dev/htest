@@ -26,6 +26,7 @@ You can access the inherited property via `this.parent` when re-defining either 
 | [`description`](#description) | String | A longer description of the test or group of tests. |
 | [`id`](#id) | String | A unique identifier for the test. |
 | [`expect`](#expect) | Any | The expected result. |
+| [`getExpect`](#expect) | Function | A function that generates the expected result dynamically. |
 | [`throws`](#throws) | Boolean, Error subclass, or Function | Whether an error is expected to be thrown. |
 | [`maxTime`](#maxtime) | Number | The maximum time (in ms) that the test should take to run. |
 | [`maxTimeAsync`](#maxtimeasync) | Number | The maximum time (in ms) that the test should take to resolve. |
@@ -104,9 +105,15 @@ E.g. you can use `maxTime` and `maxTimeAsync` together, but not with `expect` or
 
 If you specify multiple criteria, nothing will break, but you will get a warning.
 
-### Result-based criteria (`expect`) { #expect }
+### Result-based criteria (`expect` and `getExpect()`) { #expect }
 
 `expect` defines the expected result, so you'll be using it the most.
+If `expect` is *not defined*, it defaults to the first argument passed to `run()`, i.e. `this.args[0]`.
+
+The expected result can also be generated dynamically via `getExpect`.
+It is called with the same context and arguments as `run()` and returns the expected result.
+
+If both `expect` and `getExpect` are defined, `expect` wins.
 
 ### Error-based criteria (`throws`) { #throws }
 

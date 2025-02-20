@@ -33,7 +33,7 @@ export default class Test {
 		// Inherit properties from parent
 		// This works recursively because the parent constructor runs before its children
 		if (this.parent) {
-			for (let prop of ["beforeEach", "run", "afterEach", "map", "check", "getName", "args", "expect", "throws", "maxTime", "maxTimeAsync", "skip"]) {
+			for (let prop of ["beforeEach", "run", "afterEach", "map", "check", "getName", "args", "expect", "getExpect", "throws", "maxTime", "maxTimeAsync", "skip"]) {
 				if (!(prop in this) && prop in this.parent) {
 					this[prop] = this.parent[prop];
 				}
@@ -76,9 +76,13 @@ export default class Test {
 		if (this.isGroup) {
 			this.tests = this.tests.filter(Boolean).map(t => t instanceof Test ? t : new Test(t, this));
 		}
-		else {
-			if (!("args" in this)) {
-				this.args = [];
+
+		if (!("expect" in this)) {
+			if (this.getExpect) {
+				this.expect = this.getExpect.apply(this, this.args);
+			}
+			else {
+				this.expect = this.args[0];
 			}
 		}
 	}

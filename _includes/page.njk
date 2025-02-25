@@ -17,24 +17,27 @@
 </head>
 <body class="language-html{{ ' has-toc' if toc }}">
 
-<header>
+<header class="wa-split">
 
+<div>
 <h1>
 	<a href="{{ page | relative }}/"><img src="{{ page | relative }}/assets/images/logo.svg" alt="Logo showing a white checkmark on a greenish background" /> <strong>h</strong>Test</a>
 </h1>
 
-<p>Declarative unit testing, for everyone</p>
+<p class="wa-caption-m">Declarative unit testing, for everyone</p>
+</div>
 
-</header>
 <nav>
 	<a href="{{ page | relative }}/docs/">Docs</a>
 	<a href="{{ page | relative }}/api/">API</a>
-	<a href="https://github.com/leaverou/htest/">GitHub</a>
+	<a href="https://github.com/leaverou/htest/" target="_blank">
+		<i class="fab fa-github"></i>
+	</a>
 </nav>
 
-<div class="content">
+</header>
 
-
+<div class="page">
 
 {% if not ('<main>' in content ) %}
 <main>

@@ -11,6 +11,8 @@ You can access the inherited property via `this.parent` when re-defining either 
 
 **All properties are optional**.
 
+<div class="scrollable">
+
 | Property | Type | Description |
 |----------|------|-------------|
 | [`run`](#run) | Function | The code to run. |
@@ -33,6 +35,7 @@ You can access the inherited property via `this.parent` when re-defining either 
 | [`map`](#map) | Function | A mapping function to apply to the result and expected value before comparing them. |
 | [`check`](#check) | Function | A custom function that takes the result and the expected value (if present) as argments and returns a boolean indicating whether the test passed. |
 | [`skip`](#skip) | Boolean | Whether to skip the test(s). |
+</div>
 
 ## Defining the test
 

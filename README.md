@@ -1,26 +1,37 @@
-<header>
+<header class="readme-only">
 
-# ✅ **h**Test
+# <img src="assets/images/logo.svg" class="logo" width="22"> **h**Test
 
 Declarative, boilerplate-free unit testing, for everyone.
 
 https://htest.dev
-
+<hr class="readme-only" />
 </header>
+
+<nav class="sidebar" id="main-contents">
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [What the hTest?](#what-the-htest%3F-do-we-really-need-another-unit-testing-framework%3F)
+- [Interactive CLI](#interactive-cli-output)
+- [Roadmap](#roadmap)
+- [hTest in the wild](#htest-in-the-wild)
+
+</nav>
 
 <main>
 
 ## Features at a glance
 
-- ✅ **Friendly**: Never used a unit test framework before? No problem! hTest is designed to be as friendly as possible to newcomers.
-- ✅ **Declarative**: Write your tests as nested object literals, with nice, readable syntax.
-- ✅ **Flexible**: You decide where your tests live, across how many files, and how they’re grouped. Anything you can `import`, you can test.
-- ✅ **Boilerplate-free**: Any commonalities between tests only specified once on the parent, and inherited. Anything that can be optional, is.
-- ✅ **Quick to write**: Most tests only need two properties: `args` and `expect`. No more excuses for not testing your utility functions!
-- ✅ **ESM-first**: Written in ESM from the get-go.
-- ✅ **CLI and browser**: Run your tests in the command line, in the browser, or both.
-- ✅ **CI-ready**: Fully compatible with continuous integration and automated test running processes.
-- ✅ **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
+- <span>✅</span> **Friendly**: Never used a unit test framework before? No problem! hTest is designed to be as friendly as possible to newcomers.
+- <span>✅</span> **Declarative**: Write your tests as nested object literals, with nice, readable syntax.
+- <span>✅</span> **Flexible**: You decide where your tests live, across how many files, and how they’re grouped. Anything you can `import`, you can test.
+- <span>✅</span> **Boilerplate-free**: Any commonalities between tests only specified once on the parent, and inherited. Anything that can be optional, is.
+- <span>✅</span> **Quick to write**: Most tests only need two properties: `args` and `expect`. No more excuses for not testing your utility functions!
+- <span>✅</span> **ESM-first**: Written in ESM from the get-go.
+- <span>✅</span> **CLI and browser**: Run your tests in the command line, in the browser, or both.
+- <span>✅</span> **CI-ready**: Fully compatible with continuous integration and automated test running processes.
+- <span>✅</span> **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
 
 ## Installation
 
@@ -56,7 +67,7 @@ export default {
 ```
 
 Yes, **that’s really it**!
-You can add `name`, `descrption` and other metadata if you want, but you don’t have to.
+You can add `name`, `description` and other metadata if you want, but you don’t have to.
 
 But the real power of hTest is in its nested structure.
 Suppose we wanted to add more tests for `sum()`, e.g. for the case where you’re summing with `NaN`.
@@ -146,11 +157,11 @@ hTest can be used in one of two ways: [JS-first](docs/define/js/) or [HTML-first
 <tr>
 <th>
 
-[**JS-first mode**](docs/define/js/)
+JS-first mode
 </th>
 <th>
 
-[**HTML-first mode**](docs/define/html/)
+HTML-first mode
 </th>
 </tr>
 </thead>
@@ -203,12 +214,12 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 - <kbd>↓</kbd> — “Go Level Down”
 - <kbd>→</kbd> — “Expand Group”
 - <kbd>←</kbd> — “Collapse Group.” Consecutively press <kbd>←</kbd> to collapse the current group first, then the parent group, then the grandparent group, and so on.
-- <kbd>Ctrl+↑</kbd> — “Go to the First Child of a Group”
-- <kbd>Ctrl+↓</kbd> — “Go to the Last Child of a Group”
-- <kbd>Ctrl+→</kbd> — “Expand Subtree” (starting from the current group)
-- <kbd>Ctrl+←</kbd> — “Collapse Subtree” (including the current group)
-- <kbd>Ctrl+Shift+→</kbd> — “Expand All”
-- <kbd>Ctrl+Shift+←</kbd> — “Collapse All”
+- <kbd>Ctrl</kbd>+<kbd>↑</kbd> — “Go to the First Child of a Group”
+- <kbd>Ctrl</kbd>+<kbd>↓</kbd> — "Go to the Last Child of a Group"
+- <kbd>Ctrl</kbd>+<kbd>→</kbd> — "Expand Subtree" (starting from the current group)
+- <kbd>Ctrl</kbd>+<kbd>←</kbd> — "Collapse Subtree" (including the current group)
+- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>→</kbd> — "Expand All"
+- <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>←</kbd> — "Collapse All"
 
 ## Roadmap
 

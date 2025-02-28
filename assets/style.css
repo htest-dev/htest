@@ -199,10 +199,6 @@ main {
 		margin-bottom: 0;
 	}
 
-	& h2 {
-		color: var(--color-accent);
-	}
-
 	:is(h1, h2):first-child {
 		margin-block-start: 0;
 	}

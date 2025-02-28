@@ -195,7 +195,6 @@ main {
 
 	& h1 {
 		color: var(--color-neutral);
-		font-size: 300%;
 		margin-bottom: 0;
 	}
 

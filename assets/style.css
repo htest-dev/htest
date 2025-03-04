@@ -84,7 +84,7 @@ header {
 		}
 
 		& strong {
-			color: #65a30d; /* same as in the logo */
+			color: hsl(85 85% 30%); /* a bit darker than in the logo to visually match it */
 			margin-inline-end: -.13em;
 		}
 	}

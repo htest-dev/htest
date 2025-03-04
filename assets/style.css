@@ -85,14 +85,16 @@ header {
 
 		& strong {
 			color: #65a30d; /* same as in the logo */
+			margin-inline-end: -.13em;
 		}
 	}
 
 	& p {
-		margin-block-start: var(--wa-space-2xs);
+		margin-block-start: var(--wa-space-xs);
 		font-size: var(--wa-font-size-s);
 		font-weight: var(--wa-font-weight-semibold);
-		line-height: 1.25;
+		color: var(--color-neutral-50);
+		line-height: 1.12;
 
 		@media (width <= 425px) {
 			margin-block-start: 0;

@@ -2,11 +2,16 @@
 	"out": "./api",
 	"json": "./api/docs.json",
 	"name": "hTest API Docs",
-	"entryPoints": [
-		"src/index.js",
-		"src/check.js"
-	],
+	"entryPoints": ["src/index.js"],
+	"entryPointStrategy": "expand",
 	"excludeExternals": true,
-	"externalPattern": ["**/node_modules/**"],
-	"includeVersion": true
+	"includeVersion": true,
+	"markdownItOptions": {
+		"html": true,
+		"linkify": true,
+		"typographer": true
+	},
+	"favicon": "assets/images/logo.svg",
+	"hostedBaseUrl": "https://htest.dev/api",
+	"readme": "none"
 }

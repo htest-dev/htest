@@ -43,7 +43,7 @@ export function is (type) {
 /**
  * Apply a checking function recursively to objects and collections
  * @param {function} [check] Function to apply to compare primitive values. Defaults to strict equality
- * @returns {function(actual, expect): boolean}
+ * @returns {(actual, expect) => boolean}
  */
 export function deep (check = (a, b) => a === b) {
 	let callee = function (actual, expect) {
@@ -101,7 +101,7 @@ export function deep (check = (a, b) => a === b) {
  * @param {boolean} [options.looseTypes = false] If true, skip type check (e.g. "5" can match 5)
  * @param {boolean} [options.subset = false] If true, `undefined` is considered equal to anything
  * @param {number} [options.epsilon = 0] Epsilon for number comparison
- * @returns {function(actual, expect): boolean}
+ * @returns {(actual, expect) => boolean}
  */
 export function shallowEquals ({
 	looseTypes = false,
@@ -143,7 +143,7 @@ export function shallowEquals ({
 }
 
 /**
- * Compare by equality. Slighly more permissive than `===`.
+ * Compare by equality. Slightly more permissive than `===`.
  * Deep by default, use `equals.shallow` for shallow comparison.
  * @param {*} expect
  * @param {*} actual
@@ -162,8 +162,8 @@ export const subset = deep(shallowEquals({subset: true}));
 /**
  * Compare numbers or lists of numbers with a margin of error
  * @param {object} [options] Options object
- * @param {number} [o.epsilon = 0] Epsilon for comparison
- * @returns {function(actual, expect): boolean}
+ * @param {number} [options.epsilon = Number.EPSILON] Epsilon for comparison
+ * @returns {(actual, expect) => boolean}
  */
 export function proximity ({epsilon = Number.EPSILON, ...options} = {}) {
 	return shallowEquals({epsilon, ...options});
@@ -180,7 +180,7 @@ export function proximity ({epsilon = Number.EPSILON, ...options} = {}) {
  * @param {number} options.max Alias of `options.lte`
  * @param {number} options.to Alias of `options.gt`
  * @param {number} options.min Alias of `options.gte`
- * @returns {function(actual, expect): boolean}
+ * @returns {(actual, expect) => boolean}
  */
 export function range (options = {}) {
 	options.lt ??= options.from;

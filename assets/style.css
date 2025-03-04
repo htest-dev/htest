@@ -58,6 +58,12 @@ header {
 	padding-block: var(--wa-space-s);
 	background: var(--wa-color-surface-default);
 
+	div {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+	}
+
 	& h1,
 	& p {
 		margin: 0;
@@ -66,6 +72,7 @@ header {
 	& h1 {
 		font-size: 300%;
 		white-space: nowrap;
+		margin-inline-end: var(--wa-space-xs);
 
 		& > :is(a, a:hover) {
 			color: inherit;
@@ -77,7 +84,22 @@ header {
 		}
 
 		& strong {
-			color: var(--color-accent-85);
+			color: #65a30d; /* same as in the logo */
+		}
+	}
+
+	& p {
+		margin-block-start: var(--wa-space-2xs);
+		font-size: var(--wa-font-size-s);
+		font-weight: var(--wa-font-weight-semibold);
+		line-height: 1.25;
+
+		@media (width <= 425px) {
+			margin-block-start: 0;
+
+			br {
+				display: none;
+			}
 		}
 	}
 

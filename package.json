@@ -8,7 +8,7 @@
     "watch:html": "npx @11ty/eleventy --config=_build/eleventy.js --watch",
     "build": "npm run build:docs && npm run build:html",
     "build:docs": "npx typedoc",
-    "watch:docs": "npx typedoc --watch",
+    "watch:docs": "npx typedoc --watch --preserveWatchOutput",
     "watch": "npm run watch:html",
     "eslint": "npx eslint .",
     "eslint:fix": "npx eslint . --fix",
@@ -54,7 +54,7 @@
     "markdown-it-anchor": "^8.6.7",
     "markdown-it-attrs": "^4.1.6",
     "release-it": "latest",
-    "typedoc": "^0.25.12"
+    "typedoc": "^0.27"
   },
   "dependencies": {
     "diff": "^7.0.0",

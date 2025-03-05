@@ -34,13 +34,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/leaverou/htest.git"
+    "url": "git+https://github.com/htest-dev/htest.git"
   },
   "keywords": [],
   "author": "Lea Verou",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/leaverou/htest/issues"
+    "url": "https://github.com/htest-dev/htest/issues"
   },
   "homepage": "https://htest.dev",
   "devDependencies": {

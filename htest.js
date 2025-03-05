@@ -12,7 +12,7 @@ document.documentElement.style.setProperty("--page", `"${currentPage}"`);
 
 
 let isIndex = document.documentElement.classList.contains("index");
-let loaded = import(`./src/html/${isIndex? "harness" : "testpage"}.js`);
+let loaded = import(`https://html.htest.dev/src/${isIndex? "harness" : "testpage"}.js`);
 
 let util;
 
@@ -27,7 +27,7 @@ async function ready (doc = document) {
 	});
 	await Promise.all([
 		loaded,
-		import("./src/html/util.js").then(m => util = m)
+		import("https://html.htest.dev/src/util.js").then(m => util = m)
 	]);
 }
 

@@ -36,7 +36,7 @@ export default function render (test) {
 							contents: [
 								{tag: "td", textContent: t2.args?.map(a => output(a)).join(", ") },
 								{tag: "td"},
-								{tag: "td", textContent: output(t2.expect) },
+								{tag: "td", textContent: !t2.skip && t2.throws === undefined ? output(t2.expect) : "" },
 							],
 						});
 

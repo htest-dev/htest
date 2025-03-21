@@ -1,0 +1,8 @@
+# Docs
+/docs/define/html    https://html.htest.dev
+
+# RefTest class
+/src/html/reftest.js https://html.htest.dev/src/classes/RefTest.js
+
+# All other files
+/src/html/*          https://html.htest.dev/src/:splat

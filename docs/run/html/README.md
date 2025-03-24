@@ -4,7 +4,7 @@ nav: Browser (HTML reftests)
 
 # Running tests in the browser (as HTML reftests)
 
-These tests provide a UI very similar to [HTML-first reftests](../../define/html/), and can be useful
+These tests provide a UI very similar to [HTML-first reftests](https://html.htest.dev/), and can be useful
 for providing a unified front if your testsuite includes both.
 
 ## Running JS-first tests in the browser
@@ -138,4 +138,4 @@ It is often useful to isolate a single group of tests, or even a single test so 
 
 To isolate a group of tests (`<section>`), simply click the link of the section heading.
 
-To isolate a specific test (`<tr>`), hold down the Alt/Option key and double click on the table row.
+To isolate a specific test (`<tr>`), hold down the <kbd>Alt</kbd>/<kbd>Option</kbd> key and double click on the table row.

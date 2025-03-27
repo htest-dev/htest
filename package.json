@@ -61,6 +61,7 @@
     "diff": "^7.0.0",
     "glob": "^10.3.10",
     "log-update": "^6.0.0",
-    "oo-ascii-tree": "^1.91.0"
+    "oo-ascii-tree": "^1.91.0",
+    "playwright-core": "^1.51.1"
   }
 }

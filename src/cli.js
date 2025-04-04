@@ -3,6 +3,7 @@ import path from "path";
 import { globSync } from "glob";
 import env from "./env/node.js";
 import run from "./run.js";
+import runInBrowser from "./run-in-browser.js";
 
 const CONFIG_GLOB = "{,_,.}htest.{json,config.json,config.js}";
 let config;
@@ -36,8 +37,8 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Second argument is the test path (optional)
  * 
  * Supported flags:
- * --ci    Run in continuous integration mode (disables interactive features)
- * 
+ * --ci      Run in continuous integration mode (disables interactive features)
+ * --browser Run tests in a browser
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
 export default async function cli (options = {}) {
@@ -56,11 +57,29 @@ export default async function cli (options = {}) {
 		options.ci = true;
 	}
 
+	let browserArg = argv.find(arg => arg.startsWith("--browser"));
+	if (browserArg) {
+		let browserIndex = argv.indexOf(browserArg);
+		// Remove “--browser” or “--browser=foo” from args
+		argv.splice(browserIndex, 1);
+		options.env = "browser";
+
+		let [, browserType] = browserArg.split("=");
+		if (browserType) {
+			options.browser = browserType;
+		}
+	}
+
 	let location = argv[0];
 
 	if (argv[1]) {
 		options.path = argv[1];
 	}
 
-	run(location, {env, ...options});
+	if (options.env === "browser") {
+		runInBrowser(location, options);
+	}
+	else {
+		run(location, {env, ...options});
+	}
 }

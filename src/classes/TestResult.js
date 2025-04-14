@@ -83,37 +83,59 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
-		this.messages = await interceptConsole(async () => {
-			if (!this.parent) {
-				// We are running the test in isolation, so we need to run beforeAll (if it exists)
-				await this.test.beforeAll?.();
-			}
+		let test = this.test;
 
-			await this.test.beforeEach?.();
+		// By default, give the test 10 seconds to run
+		let timeout = 10000;
+		if (test.maxTime && ("expect" in test || test.throws !== undefined)) {
+			// For result-based and error-based tests, maxTime is the timeout
+			timeout = test.maxTime;
+		}
 
-			let start = performance.now();
+		let timeoutId;
+		this.messages = await Promise.race([
+			new Promise(resolve => {
+				timeoutId = setTimeout(() => {
+					this.error = new Error(`Test timed out after ${ timeout }ms`);
+					this.timeTaken = timeout;
+					resolve([]);
+				}, timeout);
+			}),
 
-			try {
-				this.actual = this.test.run ? this.test.run.apply(this.test, this.test.args) : this.test.args[0];
-				this.timeTaken = performance.now() - start;
-
-				if (this.actual instanceof Promise) {
-					this.actual = await this.actual;
-					this.timeTakenAsync = performance.now() - start;
-				}
-			}
-			catch (e) {
-				this.error = e;
-			}
-			finally {
-				await this.test.afterEach?.();
-
+			interceptConsole(async () => {
 				if (!this.parent) {
-					// We are running the test in isolation, so we need to run afterAll
-					await this.test.afterAll?.();
+					// We are running the test in isolation, so we need to run beforeAll (if it exists)
+					await test.beforeAll?.();
 				}
-			}
-		});
+
+				await test.beforeEach?.();
+
+				let start = performance.now();
+
+				try {
+					this.actual = test.run ? test.run.apply(test, test.args) : test.args[0];
+					this.timeTaken = performance.now() - start;
+
+					if (this.actual instanceof Promise) {
+						this.actual = await this.actual;
+						this.timeTakenAsync = performance.now() - start;
+					}
+				}
+				catch (e) {
+					this.error = e;
+				}
+				finally {
+					await test.afterEach?.();
+
+					if (!this.parent) {
+					// We are running the test in isolation, so we need to run afterAll
+						await test.afterAll?.();
+					}
+				}
+			}),
+		]);
+
+		clearTimeout(timeoutId);
 
 		this.evaluate();
 	}
@@ -183,13 +205,14 @@ export default class TestResult extends BubblingEventTarget {
 	evaluate () {
 		let test = this.test;
 
+		if (test.maxTime || test.maxTimeAsync) {
+			Object.assign(this, this.evaluateTimeTaken());
+		}
+
 		if (test.throws !== undefined) {
 			Object.assign(this, this.evaluateThrown());
 		}
-		else if (test.maxTime || test.maxTimeAsync) {
-			Object.assign(this, this.evaluateTimeTaken());
-		}
-		else {
+		else if ("expect" in test) {
 			Object.assign(this, this.evaluateResult());
 		}
 
@@ -209,7 +232,7 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluateThrown () {
 		let test = this.test;
-		let ret = {pass: !!this.error, details: []};
+		let ret = {pass: (this.pass ?? true) && !!this.error, details: this.details ?? []};
 
 		// We may have more picky criteria for the error
 		if (ret.pass) {
@@ -251,38 +274,42 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluateResult () {
 		let test = this.test;
-		let ret = {pass: true, details: []};
 
-		if (test.map) {
-			try {
-				this.mapped = {
-					actual: Array.isArray(this.actual) ? this.actual.map(test.map) : test.map(this.actual),
-					expect: Array.isArray(test.expect) ? test.expect.map(test.map) : test.map(test.expect),
-				};
+		// If we are here and there is an error (e.g., the test timed out), we consider the test failed
+		let ret = {pass: (this.pass ?? true) && !this.error, details: this.details ?? []};
 
+		if (ret.pass) {
+			if (test.map) {
 				try {
-					ret.pass = test.check(this.mapped.actual, this.mapped.expect);
+					this.mapped = {
+						actual: Array.isArray(this.actual) ? this.actual.map(test.map) : test.map(this.actual),
+						expect: Array.isArray(test.expect) ? test.expect.map(test.map) : test.map(test.expect),
+					};
+
+					try {
+						ret.pass = test.check(this.mapped.actual, this.mapped.expect);
+					}
+					catch (e) {
+						this.error = new Error(`check() failed (working with mapped values). ${ e.message }`);
+					}
 				}
 				catch (e) {
-					this.error = new Error(`check() failed (working with mapped values). ${ e.message }`);
+					this.error = new Error(`map() failed. ${ e.message }`);
 				}
 			}
-			catch (e) {
-				this.error = new Error(`map() failed. ${ e.message }`);
+			else {
+				try {
+					ret.pass = test.check(this.actual, test.expect);
+				}
+				catch (e) {
+					this.error = new Error(`check() failed. ${ e.message }`);
+				}
 			}
-		}
-		else {
-			try {
-				ret.pass = test.check(this.actual, test.expect);
-			}
-			catch (e) {
-				this.error = new Error(`check() failed. ${ e.message }`);
-			}
-		}
 
-		// If `map()` or `check()` errors, consider the test failed
-		if (this.error) {
-			ret.pass = false;
+			// If `map()` or `check()` errors, consider the test failed
+			if (this.error) {
+				ret.pass = false;
+			}
 		}
 
 		if (!ret.pass) {

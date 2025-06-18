@@ -464,7 +464,7 @@ ${ this.error.stack }`);
 	 */
 	getMessages (o = {}) {
 		let ret = new String("<c yellow><b><i>(Messages)</i></b></c>");
-		ret.children = this.messages.map(m => `<dim>(${ m.method })</dim> ${ m.args.join(" ") }`);
+		ret.children = this.messages.map(m => `<dim>(${ m.method })</dim> ${ m.args.map(a => stringify(a)).join(" ") }`);
 
 		return o?.format === "rich" ? ret : stripFormatting(ret);
 	}

@@ -390,9 +390,10 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getResult (o) {
-		let color = this.pass ? "green" : "red";
+		let color = this.pass ? "green" : this.skip ? "yellow" : "red";
+		let label = this.pass ? "PASS" : this.skip ? "SKIP" : "FAIL";
 		let ret = [
-			`<b><bg ${color}><c white> ${ this.pass ? "PASS" : "FAIL" } </c></bg></b>`,
+			`<b><bg ${color}><c white> ${ label } </c></bg></b>`,
 			`<c light${color}>${this.name ?? "(Anonymous)"}</c>`,
 		].join(" ");
 
@@ -484,7 +485,7 @@ ${ this.error.stack }`);
 			ret = new String(ret);
 
 			if (this.tests) {
-				ret.children = this.tests.filter(t => t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages > 0)
+				ret.children = this.tests.filter(t => (t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages > 0) || o?.verbose)
 				                     .flatMap(t => t.toString(o)).filter(Boolean);
 			}
 

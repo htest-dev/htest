@@ -34,10 +34,11 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Run tests via a CLI command
  * First argument is the location to look for tests (defaults to the current directory)
  * Second argument is the test path (optional)
- * 
+ *
  * Supported flags:
- * --ci    Run in continuous integration mode (disables interactive features)
- * 
+ * --ci         Run in continuous integration mode (disables interactive features)
+ * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
+ *
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
 export default async function cli (options = {}) {
@@ -48,12 +49,13 @@ export default async function cli (options = {}) {
 
 	let argv = process.argv.slice(2);
 
-	// Check for “--ci” flag
-	let ciIndex = argv.indexOf("--ci");
-	if (ciIndex !== -1) {
-		// Remove “--ci” from args
-		argv.splice(ciIndex, 1);
-		options.ci = true;
+	const flags = ["ci", "verbose"];
+	for (let flag of flags) {
+		let flagIndex = argv.indexOf("--" + flag);
+		if (flagIndex !== -1) {
+			argv.splice(flagIndex, 1); // remove the flag from args
+			options[flag] = true;
+		}
 	}
 
 	let location = argv[0];

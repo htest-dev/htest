@@ -131,12 +131,12 @@ export default {
 	done (result, options, event, root) {
 		if (options.ci) {
 			if (root.stats.pending === 0) {
-				if (root.stats.fail > 0) {
+				if (root.stats.fail > 0 || options.verbose) {
 					let messages = root.toString(options);
 					let tree = getTree(messages).toString();
 					tree = format(tree);
 
-					console.error(tree);
+					console[root.stats.fail > 0 ? "error" : "log"](tree);
 					process.exit(1);
 				}
 

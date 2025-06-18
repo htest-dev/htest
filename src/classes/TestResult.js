@@ -484,7 +484,7 @@ ${ this.error.stack }`);
 			ret = new String(ret);
 
 			if (this.tests) {
-				ret.children = this.tests.filter(t => t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages > 0)
+				ret.children = this.tests.filter(t => (t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages > 0) || o?.verbose)
 				                     .flatMap(t => t.toString(o)).filter(Boolean);
 			}
 

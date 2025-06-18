@@ -137,7 +137,7 @@ export default {
 					tree = format(tree);
 
 					console[root.stats.fail > 0 ? "error" : "log"](tree);
-					process.exit(1);
+					process.exit(root.stats.fail > 0 ? 1 : 0);
 				}
 
 				process.exit(0);

@@ -390,9 +390,10 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getResult (o) {
-		let color = this.pass ? "green" : "red";
+		let color = this.pass ? "green" : this.skip ? "yellow" : "red";
+		let label = this.pass ? "PASS" : this.skip ? "SKIP" : "FAIL";
 		let ret = [
-			`<b><bg ${color}><c white> ${ this.pass ? "PASS" : "FAIL" } </c></bg></b>`,
+			`<b><bg ${color}><c white> ${ label } </c></bg></b>`,
 			`<c light${color}>${this.name ?? "(Anonymous)"}</c>`,
 		].join(" ");
 

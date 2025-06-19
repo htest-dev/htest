@@ -1,6 +1,6 @@
 {
   "name": "htest.dev",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "",
   "scripts": {
     "test": "bin/htest.js tests/index.js",

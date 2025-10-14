@@ -1,5 +1,28 @@
 # Change Log
 
+## v0.0.20 (2025-10-14)
+
+### Bug fixes
+
+- Fix regression when all failed tests were shown as skipped by @DmitrySharabin in d4f8cbda57c5793912188b9681131918a0501fc6
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.19...v0.0.20
+
+## v0.0.19 (2025-06-19)
+
+### Improvements
+
+- Support verbose output in CI/CD; allow enabling verbose output via a CLI argument by @DmitrySharabin in #97
+- Don't format skipped tests as failed by @DmitrySharabin in #97
+- Stringify intercepted messages before printing them out, so we don't get `[object Object]` when printing out objects by @DmitrySharabin in #99
+
+### Bug fixes
+
+- Respect the `verbose` option when printing out results by @DmitrySharabin in #97
+- In CI/CD, don't exit with an error if there are none by @DmitrySharabin in #98
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.18...v0.0.19
+
 ## v0.0.18 (2025-06-12)
 
 ### API changes

@@ -200,6 +200,7 @@ export default class TestResult extends BubblingEventTarget {
 	 * Skip the test
 	 */
 	skip () {
+		this.skipped = true;
 		this.dispatchEvent(new Event("done", {bubbles: true}));
 	}
 
@@ -390,8 +391,8 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getResult (o) {
-		let color = this.pass ? "green" : this.skip ? "yellow" : "red";
-		let label = this.pass ? "PASS" : this.skip ? "SKIP" : "FAIL";
+		let color = this.pass ? "green" : this.skipped ? "yellow" : "red";
+		let label = this.pass ? "PASS" : this.skipped ? "SKIP" : "FAIL";
 		let ret = [
 			`<b><bg ${color}><c white> ${ label } </c></bg></b>`,
 			`<c light${color}>${this.name ?? "(Anonymous)"}</c>`,

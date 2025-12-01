@@ -39,7 +39,7 @@ You can create your own CLI script to run your tests, by importing the same code
 import htest from "../node_modules/htest.dev/src/cli.js";
 
 let test = {
-	name: "Addtion",
+	name: "Addition",
 	run: (a, b) => a + b,
 	args: [1, 2],
 	expect: 3,

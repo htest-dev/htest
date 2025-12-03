@@ -3,6 +3,8 @@ import { stringify } from "../src/util.js";
 export default {
 	run: stringify,
 	tests: [
+		{ arg: undefined, expect: "undefined" },
+		{ arg: null, expect: "null" },
 		{ arg: 1, expect: "1" },
 		{ arg: NaN, expect: "NaN" },
 		{ arg: "foo", expect: '"foo"' },

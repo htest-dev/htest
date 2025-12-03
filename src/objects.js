@@ -234,7 +234,7 @@ export function stringify (obj, options = {}) {
 		switch (obj) {
 			case undefined:
 			case null:
-				return obj;
+				return obj + "";
 		}
 
 		switch (typeof obj) {

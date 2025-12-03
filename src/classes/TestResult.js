@@ -1,3 +1,4 @@
+import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
 import format, { stripFormatting } from "../format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff } from "../util.js";

@@ -37,9 +37,9 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Second argument is the test path (optional)
  *
  * Supported flags:
- * --ci           Run in continuous integration mode (disables interactive features)
- * --verbose      Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
- *--browser       Run tests in a browser
+ * --ci         Run in continuous integration mode (disables interactive features)
+ * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
+ * --browser    Run tests in a browser (defaults to "chromium")
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
 export default async function cli (options = {}) {
@@ -52,18 +52,23 @@ export default async function cli (options = {}) {
 
 	const flags = ["ci", "verbose", "browser"];
 	for (let flag of flags) {
-		let flagIndex = argv.indexOf("--" + flag);
-		if (flagIndex !== -1) {
+		let flagArg = argv.find(arg => arg.startsWith("--" + flag));
+		if (flagArg) {
+			let flagIndex = argv.indexOf(flagArg);
 			let flagValue = argv.splice(flagIndex, 1); // remove the flag from args
+			flagValue = flagValue[0].split("=");
+
 			if (flag === "browser") {
 				options.env = "browser";
 
-				let [, browserType] = flagValue.split("=");
+				let [, browserType] = flagValue;
 				if (browserType) {
 					options.browser = browserType;
 				}
 			}
-			options[flag] = true;
+			else {
+				options[flag] = true;
+			}
 		}
 	}
 

@@ -3,6 +3,7 @@ import path from "path";
 import { globSync } from "glob";
 import env from "./env/node.js";
 import run from "./run.js";
+import runInBrowser from "./run-in-browser.js";
 
 const CONFIG_GLOB = "{,_,.}htest.{json,config.json,config.js}";
 let config;
@@ -38,7 +39,7 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Supported flags:
  * --ci         Run in continuous integration mode (disables interactive features)
  * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
- *
+ * --browser    Run tests in a browser (defaults to "chromium")
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
 export default async function cli (options = {}) {
@@ -49,12 +50,25 @@ export default async function cli (options = {}) {
 
 	let argv = process.argv.slice(2);
 
-	const flags = ["ci", "verbose"];
+	const flags = ["ci", "verbose", "browser"];
 	for (let flag of flags) {
-		let flagIndex = argv.indexOf("--" + flag);
-		if (flagIndex !== -1) {
-			argv.splice(flagIndex, 1); // remove the flag from args
-			options[flag] = true;
+		let flagArg = argv.find(arg => arg.startsWith("--" + flag));
+		if (flagArg) {
+			let flagIndex = argv.indexOf(flagArg);
+			let flagValue = argv.splice(flagIndex, 1); // remove the flag from args
+			flagValue = flagValue[0].split("=");
+
+			if (flag === "browser") {
+				options.env = "browser";
+
+				let [, browserType] = flagValue;
+				if (browserType) {
+					options.browser = browserType;
+				}
+			}
+			else {
+				options[flag] = true;
+			}
 		}
 	}
 
@@ -64,5 +78,10 @@ export default async function cli (options = {}) {
 		options.path = argv[1];
 	}
 
-	run(location, {env, ...options});
+	if (options.env === "browser") {
+		runInBrowser(location, options);
+	}
+	else {
+		run(location, {env, ...options});
+	}
 }

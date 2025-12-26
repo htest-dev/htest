@@ -39,6 +39,16 @@
   },
   "keywords": [],
   "author": "Lea Verou",
+  "funding": [
+    {
+      "type": "individual",
+      "url": "https://github.com/sponsors/LeaVerou"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/leaverou"
+    }
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/htest-dev/htest/issues"

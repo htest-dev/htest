@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import path from "path";
+import path from "node:path";
 import { globSync } from "glob";
 import env from "./env/node.js";
 import run from "./run.js";

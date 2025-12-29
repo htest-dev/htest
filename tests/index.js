@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs from "node:fs";
 
 // Read filenames in this directory
 const __dirname = new URL(".", import.meta.url).pathname;

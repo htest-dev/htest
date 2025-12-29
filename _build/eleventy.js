@@ -3,7 +3,7 @@ import anchor from "markdown-it-anchor";
 import markdownItAttrs from "markdown-it-attrs";
 import pluginTOC from "eleventy-plugin-toc";
 import eleventyNavigationPlugin from "@11ty/eleventy-navigation";
-import { createRequire } from "module";
+import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 import * as filters from "./filters.js";
 

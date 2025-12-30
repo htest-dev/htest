@@ -4,8 +4,8 @@
 
 import Test from "./classes/Test.js";
 import TestResult from "./classes/TestResult.js";
-import RefTest from "https://html.htest.dev/src/classes/RefTest.js";
-import { create, output } from "https://html.htest.dev/src/util.js";
+import RefTest from "./classes/RefTest.js";
+import { create, output } from "./dom.js";
 import { formatDuration } from "./util.js";
 import format from "./format-console.js";
 

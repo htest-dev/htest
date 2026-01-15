@@ -1,5 +1,27 @@
 # Change Log
 
+## v0.0.21 (2026-01-15)
+
+### Bug fixes
+
+- Correctly stringify `undefined` and `null` by @DmitrySharabin in #104
+- Add missed imports by @DmitrySharabin in #105
+
+### Improvements in docs
+
+- Fix typo by @Zearin in #101
+
+### DX improvements
+
+- Add the `dev` script by @LeaVerou in bd8cb0e3dd3ef0b388c1c6790776a2f8f09678dd
+- Use `node:` protocol when importing NodeJS built-in modules by @Zearin in #112
+
+### New Contributors
+
+- @Zearin made their first contribution in #101
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.20...v0.0.21
+
 ## v0.0.20 (2025-10-14)
 
 ### Bug fixes

@@ -38,6 +38,8 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Supported flags:
  * --ci         Run in continuous integration mode (disables interactive features)
  * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
+ * --headless   Run in headless mode (implies --browser chromium)
+ * --browser    Browser to use for headless mode (chromium, firefox, webkit, chrome, edge)
  *
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */

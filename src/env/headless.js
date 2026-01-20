@@ -94,6 +94,13 @@ function createRunnerHtml ({ testUrls, options }) {
 				verbose: options.verbose,
 				env: { name: "Headless Browser" },
 			});
+
+			result.addEventListener("done", () => {
+				if (result.stats?.pending > 0) {
+					window.__htest_sendProgress(result.toJSON());
+				}
+			});
+
 			await result.finished;
 			window.__htest_sendResult(result.toJSON());
 		}
@@ -213,6 +220,13 @@ export default {
 			await page.exposeFunction("__htest_sendResult", payload => {
 				resolveResult(payload);
 			});
+			await page.exposeFunction("__htest_sendProgress", payload => {
+				if (payload?.stats?.pending <= 0) {
+					return;
+				}
+				let progress = TestResult.fromJSON(payload, options);
+				nodeEnv.done?.(progress, options, null, progress);
+			});
 			await page.exposeFunction("__htest_sendError", payload => {
 				let err = new Error(payload?.message || "Headless runner failed.");
 				err.stack = payload?.stack;
@@ -223,13 +237,10 @@ export default {
 				rejectResult(err);
 			});
 
-			console.log(`Tests are running in ${browserName}.`);
-
 			await page.goto(`${ baseUrl }/__htest_runner__.html`, { waitUntil: "load" });
 			let payload = await resultPromise;
 
 			let result = TestResult.fromJSON(payload, options);
-			console.log("Done!");
 			nodeEnv.done?.(result, options, null, result);
 			return result;
 		}

@@ -79,6 +79,7 @@ function createRunnerHtml ({ testUrls, options }) {
 		import { subsetTests } from "/src/util.js";
 
 		try {
+			globalThis.__HTEST_HEADLESS__ = true;
 			const tests = JSON.parse(htest_tests.textContent);
 			const options = JSON.parse(htest_options.textContent);
 

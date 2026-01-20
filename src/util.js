@@ -256,8 +256,46 @@ if (IS_NODEJS) {
  */
 export async function interceptConsole (fn) {
 	if (!IS_NODEJS) {
-		await fn();
-		return [];
+		if (!globalThis?.__HTEST_HEADLESS__) {
+			await fn();
+			return [];
+		}
+
+		let interceptor = globalThis.consoleInterceptor;
+		if (!interceptor) {
+			interceptor = {
+				collectors: [],
+				original: {},
+			};
+
+			// FIXME: This can mix console messages across overlapping async tests.
+			for (let method of ["log", "warn", "error"]) {
+				interceptor.original[method] = console[method].bind(console);
+				console[method] = (...args) => {
+					if (interceptor.collectors.length > 0) {
+						for (let collector of interceptor.collectors) {
+							collector.push({ args, method });
+						}
+					}
+					else {
+						interceptor.original[method](...args);
+					}
+				};
+			}
+
+			globalThis.consoleInterceptor = interceptor;
+		}
+
+		let messages = [];
+		interceptor.collectors.push(messages);
+		try {
+			await fn();
+		}
+		finally {
+			interceptor.collectors = interceptor.collectors.filter(c => c !== messages);
+		}
+
+		return messages;
 	}
 
 	let messages = [];

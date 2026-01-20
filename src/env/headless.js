@@ -239,6 +239,13 @@ export default {
 				resolveResult = resolve;
 				rejectResult = reject;
 			});
+			let timeout = options.timeout ?? 30000;
+			let timer;
+			let timeoutPromise = new Promise((_, reject) => {
+				timer = setTimeout(() => {
+					reject(new Error(`Headless runner timed out after ${timeout}ms.`));
+				}, timeout);
+			});
 
 			await page.exposeFunction("sendResult", payload => {
 				resolveResult(payload);
@@ -264,7 +271,8 @@ export default {
 			});
 
 			await page.goto(`${ baseUrl }/index.html`, { waitUntil: "load" });
-			let payload = await resultPromise;
+			let payload = await Promise.race([resultPromise, timeoutPromise]);
+			clearTimeout(timer);
 
 			let result = deserializeResult(payload, options);
 			nodeEnv.done?.(result, options, null, result);

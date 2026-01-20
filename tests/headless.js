@@ -17,5 +17,10 @@ export default {
 			},
 			expect: "block",
 		},
+		{
+			name: "Hang test",
+			run: () => new Promise(() => {}),
+			skip: true,
+		},
 	],
 };

@@ -159,8 +159,34 @@ async function loadPlaywright () {
 	}
 }
 
+function resolveBrowserConfig (browserName) {
+	let name = (browserName || "chromium").toLowerCase();
+
+	switch (name) {
+		case "chromium":
+		case "firefox":
+		case "webkit":
+			return { browserType: name, channel: null, installName: name };
+		case "chrome":
+			return { browserType: "chromium", channel: "chrome", installName: "chrome" };
+		case "edge":
+		case "msedge":
+			return { browserType: "chromium", channel: "msedge", installName: "msedge" };
+		default:
+			throw new Error(`Unsupported browser "${browserName}". Use chromium, firefox, webkit, chrome, or edge.`);
+	}
+}
+
+function createInstallHint (installName) {
+	if (!installName) {
+		return `Run "npx playwright install" to install browsers.`;
+	}
+
+	return `Run "npx playwright install ${installName}" to install the browser binary.`;
+}
+
 export default {
-	name: "Headless (Chromium)",
+	name: "Headless",
 	defaultOptions: {
 		browser: "chromium",
 		headless: true,
@@ -190,12 +216,22 @@ export default {
 
 		try {
 			let playwright = await loadPlaywright();
-			let browserType = playwright[browserName];
-			if (!browserType) {
+			let { browserType, channel, installName } = resolveBrowserConfig(browserName);
+			let browserTypeApi = playwright[browserType];
+			if (!browserTypeApi) {
 				throw new Error(`Unsupported browser "${browserName}".`);
 			}
-
-			browser = await browserType.launch({ headless: options.headless !== false });
+			try {
+				browser = await browserTypeApi.launch({
+					headless: options.headless !== false,
+					channel: channel ?? undefined,
+				});
+			}
+			catch (err) {
+				let hint = createInstallHint(installName);
+				err.message = `${err.message}\n${hint}`;
+				throw err;
+			}
 			let page = await browser.newPage();
 
 			let resolveResult;

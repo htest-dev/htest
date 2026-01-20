@@ -169,7 +169,7 @@ HTML-first mode
 		<tr>
 			<td>
 
-Write your tests in nested object literals, and you can [run them either in Node](docs/run/node) or [in the browser](docs/run/html).
+Write your tests in nested object literals, and you can [run them either in Node](docs/run/node), [headless in a real browser](docs/run/headless), or [in the browser](docs/run/html).
 Tests inherit values they don’t specify from their parents, so you never have to repeat yourself.
 </td>
 <td>

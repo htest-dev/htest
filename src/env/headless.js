@@ -2,9 +2,9 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { globSync } from "glob";
-import TestResult from "../classes/TestResult.js";
 import nodeEnv from "./node.js";
-import { getType, serializeError } from "../util.js";
+import { getType } from "../util.js";
+import { deserializeResult, serializeError } from "./headless-serialize.js";
 
 const filenamePatterns = {
 	include: /\.js$/,
@@ -77,6 +77,7 @@ function createRunnerHtml ({ testUrls, options }) {
 	<script type="module">
 		import run from "/src/run.js";
 		import { subsetTests } from "/src/util.js";
+		import { serializeError, serializeResult } from "/src/env/headless-serialize.js";
 
 		try {
 			globalThis.__HTEST_HEADLESS__ = true;
@@ -98,18 +99,15 @@ function createRunnerHtml ({ testUrls, options }) {
 
 			result.addEventListener("done", () => {
 				if (result.stats?.pending > 0) {
-					sendProgress(result.toJSON());
+					sendProgress(serializeResult(result));
 				}
 			});
 
 			await result.finished;
-			sendResult(result.toJSON());
+			sendResult(serializeResult(result));
 		}
 		catch (error) {
-			sendError({
-				message: error.message,
-				stack: error.stack,
-			});
+			sendError(serializeError(error));
 		}
 	</script>
 </body>
@@ -249,11 +247,14 @@ export default {
 				if (payload?.stats?.pending <= 0) {
 					return;
 				}
-				let progress = TestResult.fromJSON(payload, options);
+				let progress = deserializeResult(payload, options);
 				nodeEnv.done?.(progress, options, null, progress);
 			});
 			await page.exposeFunction("sendError", payload => {
 				let err = new Error(payload?.message || "Headless runner failed.");
+				if (payload?.name) {
+					err.name = payload.name;
+				}
 				err.stack = payload?.stack;
 				rejectResult(err);
 			});
@@ -265,7 +266,7 @@ export default {
 			await page.goto(`${ baseUrl }/index.html`, { waitUntil: "load" });
 			let payload = await resultPromise;
 
-			let result = TestResult.fromJSON(payload, options);
+			let result = deserializeResult(payload, options);
 			nodeEnv.done?.(result, options, null, result);
 			return result;
 		}

@@ -5,60 +5,6 @@ import * as objects from "./objects.js";
  */
 export const IS_NODEJS = typeof process === "object" && process?.versions?.node;
 
-export function serializeError (error) {
-	if (!error) {
-		return null;
-	}
-
-	return {
-		name: error.name,
-		message: error.message,
-		stack: error.stack,
-	};
-}
-
-export function deserializeError (payload) {
-	if (!payload) {
-		return null;
-	}
-
-	let err = new Error(payload.message);
-	err.name = payload.name;
-	err.stack = payload.stack;
-	return err;
-}
-
-export function serializeTest (test) {
-	if (!test) {
-		return null;
-	}
-
-	return {
-		name: test.name,
-		id: test.id,
-		level: test.level,
-		isGroup: test.isGroup,
-		isTest: test.isTest,
-		skip: test.skip,
-		description: test.description,
-		maxTime: test.maxTime,
-		maxTimeAsync: test.maxTimeAsync,
-		throws: test.throws,
-	};
-}
-
-export function serializeMessages (messages) {
-	if (!messages?.length) {
-		return [];
-	}
-
-	return messages.map(m => ({
-		method: m.method,
-		args: (m.args ?? []).map(arg => stringify(arg)),
-		stringified: true,
-	}));
-}
-
 /**
  * Determine the internal JavaScript [[Class]] of an object.
  * @param {*} value - Value to check

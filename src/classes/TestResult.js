@@ -1,7 +1,7 @@
 import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
 import format, { stripFormatting } from "../format-console.js";
-import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff, serializeError, deserializeError, serializeTest, serializeMessages } from "../util.js";
+import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff } from "../util.js";
 import { IS_NODEJS } from "../util.js";
 
 // Make the diff package available both in Node.js and the browser
@@ -506,37 +506,6 @@ ${ this.error.stack }`);
 		}
 
 		return ret;
-	}
-
-	toJSON () {
-		return {
-			test: serializeTest(this.test),
-			pass: this.pass,
-			skipped: this.skipped,
-			details: this.details ?? [],
-			error: serializeError(this.error),
-			timeTaken: this.timeTaken ?? 0,
-			timeTakenAsync: this.timeTakenAsync ?? 0,
-			stats: this.stats ?? null,
-			messages: serializeMessages(this.messages),
-			children: (this.tests ?? []).map(t => t.toJSON()),
-		};
-	}
-
-	static fromJSON (json, options = {}, parent = null) {
-		let result = new TestResult(json.test ?? {}, parent, options);
-
-		result.pass = json.pass;
-		result.skipped = json.skipped;
-		result.details = json.details ?? [];
-		result.error = deserializeError(json.error);
-		result.timeTaken = json.timeTaken ?? 0;
-		result.timeTakenAsync = json.timeTakenAsync ?? 0;
-		result.stats = json.stats ?? result.stats ?? {};
-		result.messages = json.messages ?? [];
-		result.tests = (json.children ?? []).map(child => TestResult.fromJSON(child, options, result));
-
-		return result;
 	}
 
 	static warn (...args) {

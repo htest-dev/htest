@@ -3,7 +3,6 @@ import http from "node:http";
 import path from "node:path";
 import { globSync } from "glob";
 import nodeEnv from "./node.js";
-import { getType } from "../util.js";
 import { deserializeResult, serializeError } from "../headless-util.js";
 
 const filenamePatterns = {
@@ -11,69 +10,63 @@ const filenamePatterns = {
 	exclude: /^index/,
 };
 
-function toUrlPath (filePath, root) {
+function resolvePath (filePath, root) {
 	let absolute = path.resolve(root, filePath);
 	let relative = path.relative(root, absolute);
 	let normalized = relative.split(path.sep).join("/");
 	return "/" + normalized;
 }
 
-function collectFilePaths (location, root) {
-	let absolute = path.resolve(root, location);
+function getTestPaths (location, root) {
+	let resolvedPath = path.resolve(root, location);
 
-	if (fs.existsSync(absolute)) {
-		let stat = fs.statSync(absolute);
+	if (fs.existsSync(resolvedPath)) {
+		let stat = fs.statSync(resolvedPath);
 		if (stat.isDirectory()) {
-			let entries = fs.readdirSync(absolute)
+			return fs.readdirSync(resolvedPath)
 				.filter(name => !filenamePatterns.exclude.test(name) && filenamePatterns.include.test(name))
-				.map(name => path.join(absolute, name));
-			return entries;
+				.map(name => path.join(resolvedPath, name));
 		}
 
-		return [absolute];
+		return [resolvedPath];
 	}
 
 	let matches = globSync(location, { nodir: true, cwd: root });
 	return matches.map(match => path.join(root, match));
 }
 
-function resolveTestUrls (test, root) {
-	let type = getType(test);
-
-	if (type === "string") {
-		return collectFilePaths(test, root).map(p => toUrlPath(p, root));
+function resolveTestPaths (test, root) {
+	if (typeof test === "string") {
+		return getTestPaths(test, root).map(p => resolvePath(p, root));
 	}
 
 	if (Array.isArray(test)) {
 		let flattened = test.flatMap(item => {
-			if (getType(item) !== "string") {
+			if (typeof item !== "string") {
 				throw new Error("Headless runner only supports string test locations.");
 			}
-			return collectFilePaths(item, root);
+			return getTestPaths(item, root);
 		});
-		return flattened.map(p => toUrlPath(p, root));
+		return flattened.map(p => resolvePath(p, root));
 	}
 
 	throw new Error("Headless runner only supports string test locations.");
 }
 
-function escapeJson (value) {
-	return JSON.stringify(value).replace(/</g, "\\u003c");
+function escape (str) {
+	return str.replace(/</g, "&lt;");
 }
 
-function createRunnerHtml ({ testUrls, options }) {
-	let testsJson = escapeJson(testUrls);
-	let optionsJson = escapeJson(options);
-
-	return `<!doctype html>
+function getRunnerHtml ({ tests, options }) {
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8" />
+	<meta charset="utf-8" />
 	<title>hTest Headless Runner</title>
 </head>
 <body>
-	<script type="application/json" id="htest-tests">${ testsJson }</script>
-	<script type="application/json" id="htest-options">${ optionsJson }</script>
+	<script type="application/json" id="htest-tests">${ escape(JSON.stringify(tests)) }</script>
+	<script type="application/json" id="htest-options">${ escape(JSON.stringify(options)) }</script>
 	<script type="module">
 		import run from "/src/run.js";
 		import { subsetTests } from "/src/util.js";
@@ -155,80 +148,69 @@ async function loadPlaywright () {
 		return await import("playwright");
 	}
 	catch (err) {
-		throw new Error("Headless runner requires Playwright. Install with `npm i -D playwright`.");
+		throw new Error(`Headless runner requires Playwright. Install with "npm i -D playwright".`);
 	}
 }
 
-function resolveBrowserConfig (browserName) {
-	let name = (browserName || "chromium").toLowerCase();
+function getConfig (name = "chromium") {
+	let originalName = name;
+	name = name.toLowerCase();
 
 	switch (name) {
 		case "chromium":
 		case "firefox":
 		case "webkit":
-			return { browserType: name, channel: null, installName: name };
+			return { type: name, name };
 		case "chrome":
-			return { browserType: "chromium", channel: "chrome", installName: "chrome" };
+			return { type: "chromium", channel: "chrome", name: "chrome" };
 		case "edge":
 		case "msedge":
-			return { browserType: "chromium", channel: "msedge", installName: "msedge" };
+			return { type: "chromium", channel: "msedge", name: "msedge" };
 		default:
-			throw new Error(`Unsupported browser "${browserName}". Use chromium, firefox, webkit, chrome, or edge.`);
+			throw new Error(`Unsupported browser "${originalName}". Use chromium, firefox, webkit, chrome, or edge.`);
 	}
 }
 
-function createInstallHint (installName) {
-	if (!installName) {
+function getHint (browser) {
+	if (!browser) {
 		return `Run "npx playwright install" to install browsers.`;
 	}
 
-	return `Run "npx playwright install ${installName}" to install the browser binary.`;
+	return `Run "npx playwright install ${browser}" to install the browser binary.`;
 }
 
 export default {
 	name: "Headless",
 	defaultOptions: {
 		browser: "chromium",
-		headless: true,
-		serverRoot: process.cwd(),
+		get serverRoot () {
+			return process.cwd();
+		},
 	},
 	async run (test, options = {}) {
-		let root = path.resolve(options.serverRoot ?? process.cwd());
-		let testUrls = resolveTestUrls(test, root);
-		if (testUrls.length === 0) {
+		let root = path.resolve(options.serverRoot);
+		let tests = resolveTestPaths(test, root);
+		if (tests.length === 0) {
 			throw new Error("No tests found for headless run.");
 		}
 
-		let browserName = options.browser ?? "chromium";
-		let browserOptions = {
-			only: options.only,
-			verbose: options.verbose,
-			path: options.path,
-		};
-
-		let html = createRunnerHtml({
-			testUrls,
-			options: browserOptions,
-		});
+		let html = getRunnerHtml({ tests, options });
 
 		let { server, baseUrl } = await startServer({ root, html });
 		let browser;
 
 		try {
 			let playwright = await loadPlaywright();
-			let { browserType, channel, installName } = resolveBrowserConfig(browserName);
-			let browserTypeApi = playwright[browserType];
-			if (!browserTypeApi) {
-				throw new Error(`Unsupported browser "${browserName}".`);
+			let { type, channel, name } = getConfig(options.browser);
+			browser = playwright[type];
+			if (!browser) {
+				throw new Error(`Unsupported browser "${options.browser}".`);
 			}
 			try {
-				browser = await browserTypeApi.launch({
-					headless: options.headless !== false,
-					channel: channel ?? undefined,
-				});
+				browser = await browser.launch({ headless: true, channel });
 			}
 			catch (err) {
-				let hint = createInstallHint(installName);
+				let hint = getHint(name);
 				err.message = `${err.message}\n${hint}`;
 				throw err;
 			}

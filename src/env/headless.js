@@ -4,7 +4,7 @@ import path from "node:path";
 import { globSync } from "glob";
 import nodeEnv from "./node.js";
 import { getType } from "../util.js";
-import { deserializeResult, serializeError } from "./headless-serialize.js";
+import { deserializeResult, serializeError } from "../headless-util.js";
 
 const filenamePatterns = {
 	include: /\.js$/,
@@ -77,10 +77,11 @@ function createRunnerHtml ({ testUrls, options }) {
 	<script type="module">
 		import run from "/src/run.js";
 		import { subsetTests } from "/src/util.js";
-		import { serializeError, serializeResult } from "/src/env/headless-serialize.js";
+		import { serializeError, serializeResult } from "/src/headless-util.js";
 
 		try {
 			globalThis.__HTEST_HEADLESS__ = true;
+
 			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
 			const options = JSON.parse(document.getElementById("htest-options").textContent);
 

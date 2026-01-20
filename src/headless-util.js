@@ -1,7 +1,7 @@
 // FIXME: Importing TestResult here pulls in the browser diff CDN dependency.
 // We don't do diffing in the headless environment, so we need to find a way to avoid importing the diff package in TestResult.js.
-import TestResult from "../classes/TestResult.js";
-import { stringify } from "../util.js";
+import TestResult from "./classes/TestResult.js";
+import { stringify } from "./util.js";
 
 export function serializeError (error) {
 	if (!error) {

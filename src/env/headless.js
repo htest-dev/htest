@@ -72,8 +72,8 @@ function createRunnerHtml ({ testUrls, options }) {
 	<title>hTest Headless Runner</title>
 </head>
 <body>
-	<script id="htest_tests">${ testsJson }</script>
-	<script id="htest_options">${ optionsJson }</script>
+	<script type="application/json" id="htest-tests">${ testsJson }</script>
+	<script type="application/json" id="htest-options">${ optionsJson }</script>
 	<script type="module">
 		import run from "/src/run.js";
 		import { subsetTests } from "/src/util.js";
@@ -81,8 +81,8 @@ function createRunnerHtml ({ testUrls, options }) {
 
 		try {
 			globalThis.__HTEST_HEADLESS__ = true;
-			const tests = JSON.parse(htest_tests.textContent);
-			const options = JSON.parse(htest_options.textContent);
+			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
+			const options = JSON.parse(document.getElementById("htest-options").textContent);
 
 			const modules = await Promise.all(tests.map(url => import(url).then(m => m.default ?? m)));
 			let test = modules.length === 1 ? modules[0] : modules;

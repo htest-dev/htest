@@ -72,15 +72,15 @@ function createRunnerHtml ({ testUrls, options }) {
 	<title>hTest Headless Runner</title>
 </head>
 <body>
-	<script type="application/json" id="htest-tests">${ testsJson }</script>
-	<script type="application/json" id="htest-options">${ optionsJson }</script>
+	<script id="htest_tests">${ testsJson }</script>
+	<script id="htest_options">${ optionsJson }</script>
 	<script type="module">
 		import run from "/src/run.js";
 		import { subsetTests } from "/src/util.js";
 
 		try {
-			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
-			const options = JSON.parse(document.getElementById("htest-options").textContent);
+			const tests = JSON.parse(htest_tests.textContent);
+			const options = JSON.parse(htest_options.textContent);
 
 			const modules = await Promise.all(tests.map(url => import(url).then(m => m.default ?? m)));
 			let test = modules.length === 1 ? modules[0] : modules;
@@ -97,15 +97,15 @@ function createRunnerHtml ({ testUrls, options }) {
 
 			result.addEventListener("done", () => {
 				if (result.stats?.pending > 0) {
-					window.__htest_sendProgress(result.toJSON());
+					sendProgress(result.toJSON());
 				}
 			});
 
 			await result.finished;
-			window.__htest_sendResult(result.toJSON());
+			sendResult(result.toJSON());
 		}
 		catch (error) {
-			window.__htest_sendError({
+			sendError({
 				message: error.message,
 				stack: error.stack,
 			});
@@ -115,23 +115,12 @@ function createRunnerHtml ({ testUrls, options }) {
 </html>`;
 }
 
-function getContentType (filePath) {
-	let ext = path.extname(filePath);
-	switch (ext) {
-		case ".js":
-		case ".mjs":
-			return "application/javascript";
-		default:
-			return "application/octet-stream";
-	}
-}
-
 async function startServer ({ root, html }) {
 	return new Promise((resolve, reject) => {
 		let server = http.createServer((req, res) => {
 			let url = new URL(req.url, "http://localhost");
 
-			if (url.pathname === "/__htest_runner__.html") {
+			if (url.pathname === "/index.html") {
 				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
 				res.end(html);
 				return;
@@ -146,8 +135,7 @@ async function startServer ({ root, html }) {
 				return;
 			}
 
-			let contentType = getContentType(filePath);
-			res.writeHead(200, { "Content-Type": contentType, "Cache-Control": "no-store" });
+			res.writeHead(200, { "Content-Type": "application/javascript", "Cache-Control": "no-store" });
 			fs.createReadStream(filePath).pipe(res);
 		});
 
@@ -217,17 +205,17 @@ export default {
 				rejectResult = reject;
 			});
 
-			await page.exposeFunction("__htest_sendResult", payload => {
+			await page.exposeFunction("sendResult", payload => {
 				resolveResult(payload);
 			});
-			await page.exposeFunction("__htest_sendProgress", payload => {
+			await page.exposeFunction("sendProgress", payload => {
 				if (payload?.stats?.pending <= 0) {
 					return;
 				}
 				let progress = TestResult.fromJSON(payload, options);
 				nodeEnv.done?.(progress, options, null, progress);
 			});
-			await page.exposeFunction("__htest_sendError", payload => {
+			await page.exposeFunction("sendError", payload => {
 				let err = new Error(payload?.message || "Headless runner failed.");
 				err.stack = payload?.stack;
 				rejectResult(err);
@@ -237,7 +225,7 @@ export default {
 				rejectResult(err);
 			});
 
-			await page.goto(`${ baseUrl }/__htest_runner__.html`, { waitUntil: "load" });
+			await page.goto(`${ baseUrl }/index.html`, { waitUntil: "load" });
 			let payload = await resultPromise;
 
 			let result = TestResult.fromJSON(payload, options);

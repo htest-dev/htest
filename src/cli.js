@@ -49,7 +49,7 @@ export default async function cli (options = {}) {
 
 	let argv = process.argv.slice(2);
 
-	const flags = ["ci", "verbose"];
+	const flags = ["ci", "verbose", "headless"];
 	for (let flag of flags) {
 		let flagIndex = argv.indexOf("--" + flag);
 		if (flagIndex !== -1) {
@@ -58,22 +58,14 @@ export default async function cli (options = {}) {
 		}
 	}
 
-	let envIndex = argv.indexOf("--env");
-	if (envIndex !== -1 && argv[envIndex + 1]) {
-		options.env = argv[envIndex + 1];
-		argv.splice(envIndex, 2);
-	}
-
-	let headlessIndex = argv.indexOf("--headless");
-	if (headlessIndex !== -1) {
-		options.env = "headless";
-		argv.splice(headlessIndex, 1);
-	}
-
 	let browserIndex = argv.indexOf("--browser");
 	if (browserIndex !== -1 && argv[browserIndex + 1]) {
 		options.browser = argv[browserIndex + 1];
 		argv.splice(browserIndex, 2);
+	}
+
+	if (options.headless) {
+		options.env = "headless";
 	}
 
 	let location = argv[0];

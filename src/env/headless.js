@@ -1,10 +1,248 @@
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { globSync } from "glob";
+import TestResult from "../classes/TestResult.js";
+import nodeEnv from "./node.js";
+import { getType, serializeError } from "../util.js";
+
+const filenamePatterns = {
+	include: /\.js$/,
+	exclude: /^index/,
+};
+
+function toUrlPath (filePath, root) {
+	let absolute = path.resolve(root, filePath);
+	let relative = path.relative(root, absolute);
+	let normalized = relative.split(path.sep).join("/");
+	return "/" + normalized;
+}
+
+function collectFilePaths (location, root) {
+	let absolute = path.resolve(root, location);
+
+	if (fs.existsSync(absolute)) {
+		let stat = fs.statSync(absolute);
+		if (stat.isDirectory()) {
+			let entries = fs.readdirSync(absolute)
+				.filter(name => !filenamePatterns.exclude.test(name) && filenamePatterns.include.test(name))
+				.map(name => path.join(absolute, name));
+			return entries;
+		}
+
+		return [absolute];
+	}
+
+	let matches = globSync(location, { nodir: true, cwd: root });
+	return matches.map(match => path.join(root, match));
+}
+
+function resolveTestUrls (test, root) {
+	let type = getType(test);
+
+	if (type === "string") {
+		return collectFilePaths(test, root).map(p => toUrlPath(p, root));
+	}
+
+	if (Array.isArray(test)) {
+		let flattened = test.flatMap(item => {
+			if (getType(item) !== "string") {
+				throw new Error("Headless runner only supports string test locations.");
+			}
+			return collectFilePaths(item, root);
+		});
+		return flattened.map(p => toUrlPath(p, root));
+	}
+
+	throw new Error("Headless runner only supports string test locations.");
+}
+
+function escapeJson (value) {
+	return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+function createRunnerHtml ({ testUrls, options }) {
+	let testsJson = escapeJson(testUrls);
+	let optionsJson = escapeJson(options);
+
+	return `<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>hTest Headless Runner</title>
+</head>
+<body>
+	<script type="application/json" id="htest-tests">${ testsJson }</script>
+	<script type="application/json" id="htest-options">${ optionsJson }</script>
+	<script type="module">
+		import run from "/src/run.js";
+		import { subsetTests } from "/src/util.js";
+
+		try {
+			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
+			const options = JSON.parse(document.getElementById("htest-options").textContent);
+
+			const modules = await Promise.all(tests.map(url => import(url).then(m => m.default ?? m)));
+			let test = modules.length === 1 ? modules[0] : modules;
+
+			if (options.path) {
+				subsetTests(test, options.path);
+			}
+
+			const result = run(test, {
+				only: options.only,
+				verbose: options.verbose,
+				env: { name: "Headless Browser" },
+			});
+			await result.finished;
+			window.__htest_sendResult(result.toJSON());
+		}
+		catch (error) {
+			window.__htest_sendError({
+				message: error.message,
+				stack: error.stack,
+			});
+		}
+	</script>
+</body>
+</html>`;
+}
+
+function getContentType (filePath) {
+	let ext = path.extname(filePath);
+	switch (ext) {
+		case ".js":
+		case ".mjs":
+			return "application/javascript";
+		default:
+			return "application/octet-stream";
+	}
+}
+
+async function startServer ({ root, html }) {
+	return new Promise((resolve, reject) => {
+		let server = http.createServer((req, res) => {
+			let url = new URL(req.url, "http://localhost");
+
+			if (url.pathname === "/__htest_runner__.html") {
+				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+				res.end(html);
+				return;
+			}
+
+			let decodedPath = decodeURIComponent(url.pathname);
+			let filePath = path.resolve(root, "." + decodedPath);
+
+			if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+				res.writeHead(404);
+				res.end("Not found");
+				return;
+			}
+
+			let contentType = getContentType(filePath);
+			res.writeHead(200, { "Content-Type": contentType, "Cache-Control": "no-store" });
+			fs.createReadStream(filePath).pipe(res);
+		});
+
+		server.on("error", reject);
+		server.listen(0, "127.0.0.1", () => {
+			let address = server.address();
+			resolve({
+				server,
+				baseUrl: `http://127.0.0.1:${address.port}`,
+			});
+		});
+	});
+}
+
+async function loadPlaywright () {
+	try {
+		return await import("playwright");
+	}
+	catch (err) {
+		throw new Error("Headless runner requires Playwright. Install with `npm i -D playwright`.");
+	}
+}
+
 export default {
 	name: "Headless (Chromium)",
 	defaultOptions: {
 		browser: "chromium",
 		headless: true,
+		serverRoot: process.cwd(),
 	},
-	async run () {
-		throw new Error("Headless runner is not implemented yet.");
+	async run (test, options = {}) {
+		let root = path.resolve(options.serverRoot ?? process.cwd());
+		let testUrls = resolveTestUrls(test, root);
+		if (testUrls.length === 0) {
+			throw new Error("No tests found for headless run.");
+		}
+
+		let browserName = options.browser ?? "chromium";
+		let browserOptions = {
+			only: options.only,
+			verbose: options.verbose,
+			path: options.path,
+		};
+
+		let html = createRunnerHtml({
+			testUrls,
+			options: browserOptions,
+		});
+
+		let { server, baseUrl } = await startServer({ root, html });
+		let browser;
+
+		try {
+			let playwright = await loadPlaywright();
+			let browserType = playwright[browserName];
+			if (!browserType) {
+				throw new Error(`Unsupported browser "${browserName}".`);
+			}
+
+			browser = await browserType.launch({ headless: options.headless !== false });
+			let page = await browser.newPage();
+
+			let resolveResult;
+			let rejectResult;
+			let resultPromise = new Promise((resolve, reject) => {
+				resolveResult = resolve;
+				rejectResult = reject;
+			});
+
+			await page.exposeFunction("__htest_sendResult", payload => {
+				resolveResult(payload);
+			});
+			await page.exposeFunction("__htest_sendError", payload => {
+				let err = new Error(payload?.message || "Headless runner failed.");
+				err.stack = payload?.stack;
+				rejectResult(err);
+			});
+
+			page.on("pageerror", err => {
+				rejectResult(err);
+			});
+
+			console.log(`Tests are running in ${browserName}.`);
+
+			await page.goto(`${ baseUrl }/__htest_runner__.html`, { waitUntil: "load" });
+			let payload = await resultPromise;
+
+			let result = TestResult.fromJSON(payload, options);
+			console.log("Done!");
+			nodeEnv.done?.(result, options, null, result);
+			return result;
+		}
+		catch (err) {
+			err.meta = serializeError(err);
+			throw err;
+		}
+		finally {
+			if (browser) {
+				await browser.close();
+			}
+
+			server.close();
+		}
 	},
 };

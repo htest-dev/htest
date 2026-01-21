@@ -171,14 +171,6 @@ function getConfig (name = "chromium") {
 	}
 }
 
-function getHint (browser) {
-	if (!browser) {
-		return `Run "npx playwright install" to install browsers.`;
-	}
-
-	return `Run "npx playwright install ${browser}" to install the browser binary.`;
-}
-
 export default {
 	name: "Headless",
 	defaultOptions: {
@@ -207,11 +199,11 @@ export default {
 				throw new Error(`Unsupported browser "${options.browser}".`);
 			}
 			try {
+				console.info(`Launching headless browser...\n`);
 				browser = await browser.launch({ headless: true, channel });
 			}
 			catch (err) {
-				let hint = getHint(name);
-				err.message = `${err.message}\n${hint}`;
+				browser = null;
 				throw err;
 			}
 			let page = await browser.newPage();

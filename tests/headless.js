@@ -1,5 +1,6 @@
 export default {
 	name: "Headless runner tests",
+	skip: typeof globalThis.document === "undefined",
 	tests: [
 		{
 			name: "Simple math",

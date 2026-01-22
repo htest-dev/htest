@@ -229,6 +229,7 @@ export default {
 			if (!browser) {
 				throw new Error(`Unsupported browser "${options.browser}".`);
 			}
+
 			try {
 				console.info(`Launching headless runner...\n`);
 				browser = await browser.launch({ headless: !options.headed, channel });
@@ -237,6 +238,7 @@ export default {
 				browser = null;
 				throw err;
 			}
+
 			let page = await browser.newPage();
 
 			let resolveResult;
@@ -245,6 +247,7 @@ export default {
 				resolveResult = resolve;
 				rejectResult = reject;
 			});
+
 			let timeout = options.timeout ?? 30000;
 			let timer;
 			let timeoutPromise = new Promise((_, reject) => {
@@ -256,6 +259,7 @@ export default {
 			await page.exposeFunction("sendResult", payload => {
 				resolveResult(payload);
 			});
+
 			await page.exposeFunction("sendProgress", payload => {
 				if (payload?.stats?.pending <= 0) {
 					return;
@@ -263,6 +267,7 @@ export default {
 				let progress = deserializeResult(payload, options);
 				nodeEnv.done?.(progress, options, null, progress);
 			});
+
 			await page.exposeFunction("sendError", payload => {
 				let err = new Error(payload?.message || "Headless runner failed.");
 				if (payload?.name) {

@@ -1,20 +1,30 @@
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { globSync } from "glob";
 import nodeEnv from "./node.js";
 import { deserializeResult, serializeError } from "../headless-util.js";
+
+// Headless browser has a single URL space but we serve two filesystem roots:
+// hTest package source and the user's tests. Use URL prefixes to route.
+const HTEST_BASE = "/__htest__";
+const TESTS_BASE = "/__tests__";
+const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
+// Default hTest source root when running from the installed package.
+const HTEST_ROOT = path.resolve(MODULE_DIR, "..", "..");
 
 const filenamePatterns = {
 	include: /\.js$/,
 	exclude: /^index/,
 };
 
-function resolvePath (filePath, root) {
+function resolvePath (filePath, root, base) {
 	let absolute = path.resolve(root, filePath);
 	let relative = path.relative(root, absolute);
 	let normalized = relative.split(path.sep).join("/");
-	return "/" + normalized;
+	base = base.replace(/\/$/, "");
+	return `${ base }/${ normalized }`;
 }
 
 function getTestPaths (location, root) {
@@ -35,9 +45,9 @@ function getTestPaths (location, root) {
 	return matches.map(match => path.join(root, match));
 }
 
-function resolveTestPaths (test, root) {
+function resolveTestPaths (test, root, base) {
 	if (typeof test === "string") {
-		return getTestPaths(test, root).map(p => resolvePath(p, root));
+		return getTestPaths(test, root).map(p => resolvePath(p, root, base));
 	}
 
 	if (Array.isArray(test)) {
@@ -47,7 +57,7 @@ function resolveTestPaths (test, root) {
 			}
 			return getTestPaths(item, root);
 		});
-		return flattened.map(p => resolvePath(p, root));
+		return flattened.map(p => resolvePath(p, root, base));
 	}
 
 	throw new Error("Headless runner only supports string test locations.");
@@ -57,7 +67,7 @@ function escape (str) {
 	return str.replace(/</g, "&lt;");
 }
 
-function getRunnerHtml ({ tests, options }) {
+function getRunnerHtml ({ tests, options, base = HTEST_BASE } = {}) {
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -72,9 +82,9 @@ function getRunnerHtml ({ tests, options }) {
 	<script type="application/json" id="htest-tests">${ escape(JSON.stringify(tests)) }</script>
 	<script type="application/json" id="htest-options">${ escape(JSON.stringify(options)) }</script>
 	<script type="module">
-		import run from "/src/run.js";
-		import { subsetTests } from "/src/util.js";
-		import { serializeError, serializeResult } from "/src/headless-util.js";
+		import run from "${ base }/src/run.js";
+		import { subsetTests } from "${ base }/src/util.js";
+		import { serializeError, serializeResult } from "${ base }/src/headless-util.js";
 
 		try {
 			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
@@ -110,7 +120,7 @@ function getRunnerHtml ({ tests, options }) {
 </html>`;
 }
 
-async function startServer ({ root, html }) {
+async function startServer ({ root, htestRoot, html, htestBase = HTEST_BASE, testsBase = TESTS_BASE } = {}) {
 	return new Promise((resolve, reject) => {
 		let server = http.createServer((req, res) => {
 			let url = new URL(req.url, "http://localhost");
@@ -122,7 +132,21 @@ async function startServer ({ root, html }) {
 			}
 
 			let decodedPath = decodeURIComponent(url.pathname);
-			let filePath = path.resolve(root, "." + decodedPath);
+			let filePath;
+			// Route hTest imports to the package root, and test imports to the project root.
+			if (decodedPath.startsWith(htestBase + "/")) {
+				let relative = decodedPath.slice(htestBase.length);
+				filePath = path.resolve(htestRoot, "." + relative);
+			}
+			else if (decodedPath.startsWith(testsBase + "/")) {
+				let relative = decodedPath.slice(testsBase.length);
+				filePath = path.resolve(root, "." + relative);
+			}
+			else {
+				res.writeHead(404);
+				res.end("Not found");
+				return;
+			}
 
 			if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
 				res.writeHead(404);
@@ -180,17 +204,22 @@ export default {
 		get serverRoot () {
 			return process.cwd();
 		},
+		get htestRoot () {
+			return HTEST_ROOT;
+		},
 	},
 	async run (test, options = {}) {
 		let root = path.resolve(options.serverRoot);
-		let tests = resolveTestPaths(test, root);
+		let htestRoot = path.resolve(options.htestRoot);
+
+		let tests = resolveTestPaths(test, root, TESTS_BASE);
 		if (tests.length === 0) {
 			throw new Error("No tests found for headless run.");
 		}
 
 		let html = getRunnerHtml({ tests, options });
 
-		let { server, baseUrl } = await startServer({ root, html });
+		let { server, baseUrl } = await startServer({ root, htestRoot, html });
 		let browser;
 
 		try {

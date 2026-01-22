@@ -5,7 +5,11 @@ import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDi
 import { IS_NODEJS } from "../util.js";
 
 let diffModule;
-let diffChars = () => []; // Dummy function
+// FIXME: Replace this dummy diff with a proper headless-safe diff import.
+let diffChars = (actual, expected) => [
+	{ value: actual, removed: true },
+	{ value: expected, added: true },
+]; // Dummy function for headless environments
 
 if (!globalThis?.__HTEST_HEADLESS__) {
 	// Load eagerly in non-headless environments (Node.js and the browser) so diffs are ready when needed.

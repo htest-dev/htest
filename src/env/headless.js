@@ -193,14 +193,14 @@ export default {
 
 		try {
 			let playwright = await loadPlaywright();
-			let { type, channel, name } = getConfig(options.browser);
+			let { type, channel } = getConfig(options.browser);
 			browser = playwright[type];
 			if (!browser) {
 				throw new Error(`Unsupported browser "${options.browser}".`);
 			}
 			try {
-				console.info(`Launching headless browser...\n`);
-				browser = await browser.launch({ headless: true, channel });
+				console.info(`Launching headless runner...\n`);
+				browser = await browser.launch({ headless: !options.headed, channel });
 			}
 			catch (err) {
 				browser = null;
@@ -258,10 +258,7 @@ export default {
 			throw err;
 		}
 		finally {
-			if (browser) {
-				await browser.close();
-			}
-
+			await browser?.close();
 			server.close();
 		}
 	},

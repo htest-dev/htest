@@ -4,8 +4,21 @@ import format, { stripFormatting } from "../format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff } from "../util.js";
 import { IS_NODEJS } from "../util.js";
 
-// Make the diff package available both in Node.js and the browser
-const { diffChars } = await import(IS_NODEJS ? "diff" : "https://cdn.jsdelivr.net/npm/diff@7.0.0/lib/index.es6.js");
+let diffModule;
+let diffChars = () => []; // Dummy function
+
+if (!globalThis?.__HTEST_HEADLESS__) {
+	// Load eagerly in non-headless environments (Node.js and the browser) so diffs are ready when needed.
+	let mod = await import(
+		IS_NODEJS
+			? "diff"
+			: "https://cdn.jsdelivr.net/npm/diff@8.0.3/dist/diff.min.js"
+	);
+	diffModule = mod?.default ?? mod;
+	if (typeof diffModule?.diffChars === "function") {
+		diffChars = diffModule.diffChars;
+	}
+}
 
 /**
  * Represents the result of a test or group of tests.

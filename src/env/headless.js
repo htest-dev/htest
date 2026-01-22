@@ -65,6 +65,10 @@ function getRunnerHtml ({ tests, options }) {
 	<title>hTest Headless Runner</title>
 </head>
 <body>
+	<script>
+		// Must be set before module imports, since static imports run before module body.
+		globalThis.__HTEST_HEADLESS__ = true;
+	</script>
 	<script type="application/json" id="htest-tests">${ escape(JSON.stringify(tests)) }</script>
 	<script type="application/json" id="htest-options">${ escape(JSON.stringify(options)) }</script>
 	<script type="module">
@@ -73,8 +77,6 @@ function getRunnerHtml ({ tests, options }) {
 		import { serializeError, serializeResult } from "/src/headless-util.js";
 
 		try {
-			globalThis.__HTEST_HEADLESS__ = true;
-
 			const tests = JSON.parse(document.getElementById("htest-tests").textContent);
 			const options = JSON.parse(document.getElementById("htest-options").textContent);
 

@@ -1,5 +1,13 @@
 # Change Log
 
+## v0.0.22 (2026-03-03)
+
+### Bug fixes
+
+- Fix CLI crash in non-TTY environments by @DmitrySharabin in #123
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.21...v0.0.22
+
 ## v0.0.21 (2026-01-15)
 
 ### Bug fixes

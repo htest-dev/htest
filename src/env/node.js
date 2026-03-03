@@ -129,7 +129,11 @@ export default {
 		process.env.NODE_ENV = "test";
 	},
 	done (result, options, event, root) {
-		if (options.ci) {
+		// Interactive mode requires both a TTY stdout (for cursor control) and a TTY stdin (for raw keypress events).
+		// The --ci flag explicitly opts into non-interactive mode regardless of TTY state.
+		let isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
+
+		if (!isInteractive) {
 			if (root.stats.pending === 0) {
 				if (root.stats.fail > 0 || options.verbose) {
 					let messages = root.toString(options);
@@ -137,10 +141,9 @@ export default {
 					tree = format(tree);
 
 					console[root.stats.fail > 0 ? "error" : "log"](tree);
-					process.exit(root.stats.fail > 0 ? 1 : 0);
 				}
 
-				process.exit(0);
+				process.exit(root.stats.fail > 0 ? 1 : 0);
 			}
 		}
 		else {

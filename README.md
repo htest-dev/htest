@@ -14,6 +14,7 @@ https://htest.dev
 - [Quick Start](#quick-start)
 - [What the hTest?](#what-the-htest%3F-do-we-really-need-another-unit-testing-framework%3F)
 - [Interactive CLI](#interactive-cli-output)
+- [AI Agent Integration](#ai-agent-integration)
 - [Roadmap](#roadmap)
 - [hTest in the wild](#htest-in-the-wild)
 
@@ -32,6 +33,7 @@ https://htest.dev
 - <span>✅</span> **CLI and browser**: Run your tests in the command line, in the browser, or both.
 - <span>✅</span> **CI-ready**: Fully compatible with continuous integration and automated test running processes.
 - <span>✅</span> **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
+- <span>✅</span> **AI-agent friendly**: Ships with a [`SKILL.md`](SKILL.md) reference for AI coding agents — teach Claude Code, Cursor, Copilot, and others to write hTest tests correctly.
 
 ## Installation
 
@@ -220,6 +222,53 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 - <kbd>Ctrl</kbd>+<kbd>←</kbd> — "Collapse Subtree" (including the current group)
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>→</kbd> — "Expand All"
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>←</kbd> — "Collapse All"
+
+## AI Agent Integration
+
+hTest ships with a [`SKILL.md`](SKILL.md) — a comprehensive reference that teaches AI coding agents how to write hTest tests correctly.
+After installing hTest, the file is available at `node_modules/htest.dev/SKILL.md`. Copy it to the right location for your agent:
+
+### Claude Code
+
+```sh
+cp node_modules/htest.dev/SKILL.md ~/.claude/skills/htest.md
+```
+
+### Cursor
+
+Create `.cursor/rules/` if it doesn't exist yet, then copy:
+
+```sh
+mkdir -p .cursor/rules
+cp node_modules/htest.dev/SKILL.md .cursor/rules/htest.mdc
+```
+
+### GitHub Copilot
+
+Create `.github/` if it doesn't exist yet, then append:
+
+```sh
+mkdir -p .github
+cat node_modules/htest.dev/SKILL.md >> .github/copilot-instructions.md
+```
+
+### Windsurf
+
+```sh
+cat node_modules/htest.dev/SKILL.md >> .windsurfrules
+```
+
+### Codex (OpenAI)
+
+```sh
+cat node_modules/htest.dev/SKILL.md >> AGENTS.md
+```
+
+### Gemini CLI
+
+```sh
+cat node_modules/htest.dev/SKILL.md >> GEMINI.md
+```
 
 ## Roadmap
 

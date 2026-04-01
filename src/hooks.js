@@ -30,7 +30,7 @@ export class Hooks {
 }
 
 /**
- * The instance of {@link Hooks} used throughout Color.js
+ * The instance of {@link Hooks} used throughout hTest
  */
 const hooks = new Hooks();
 

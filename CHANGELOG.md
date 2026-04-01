@@ -1,5 +1,19 @@
 # Change Log
 
+## v0.0.23 (2026-04-01)
+
+### DX improvements
+
+- Add skill file (`SKILL.md`) for AI coding agents — enables Claude Code, Cursor, Copilot, Windsurf, Codex, and Gemini CLI to write hTest tests correctly by @DmitrySharabin in #124
+- Restrict `npm publish` to package files only, reducing published package size from 2.1 MB to ~32 KB by @DmitrySharabin in a954397
+
+### Bug fixes
+
+- Fix stale Color.js reference in `hooks.js` JSDoc by @DmitrySharabin in 17738e9
+- Fix known vulnerabilities by @DmitrySharabin in 05b20d0
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.22...v0.0.23
+
 ## v0.0.22 (2026-03-03)
 
 ### Bug fixes

@@ -2,6 +2,14 @@
   "name": "htest.dev",
   "version": "0.0.22",
   "description": "",
+  "files": [
+    "src/",
+    "bin/",
+    "htest.js",
+    "htest.css",
+    "SKILL.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "test": "bin/htest.js tests/index.js",
     "build:html": "npx @11ty/eleventy --config=_build/eleventy.js",

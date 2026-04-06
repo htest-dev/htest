@@ -226,6 +226,16 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 ## AI Agent Integration
 
 hTest ships with a [`SKILL.md`](SKILL.md) — a comprehensive reference that teaches AI coding agents how to write hTest tests correctly.
+
+The easiest way to install it is via the [`skills`](https://github.com/vercel-labs/skills) CLI, which supports 45+ agents (Claude Code, Cursor, Copilot, Gemini CLI, Codex, Windsurf, and many more):
+
+```sh
+npx skills add htest-dev/htest
+```
+
+<details>
+<summary>Manual installation</summary>
+
 After installing hTest, the file is available at `node_modules/htest.dev/SKILL.md`. Copy it to the right location for your agent:
 
 ### Claude Code
@@ -269,6 +279,8 @@ cat node_modules/htest.dev/SKILL.md >> AGENTS.md
 ```sh
 cat node_modules/htest.dev/SKILL.md >> GEMINI.md
 ```
+
+</details>
 
 ## Roadmap
 

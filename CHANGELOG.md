@@ -1,5 +1,17 @@
 # Change Log
 
+## v0.0.24 (2026-04-06)
+
+### Bug fixes
+
+- Always show summary output in CI mode when all tests pass by @DmitrySharabin in #126
+
+### DX improvements
+
+- Recommend `npx skills add` for AI agent skill installation by @DmitrySharabin in 298beae
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.23...v0.0.24
+
 ## v0.0.23 (2026-04-01)
 
 ### DX improvements

@@ -38,6 +38,14 @@ export default function run (test, options = {}) {
 		test ??= options.location;
 	}
 
+	if (env.setup) {
+		env.setup();
+	}
+
+	if (env.run) {
+		return env.run(test, options);
+	}
+
 	if (getType(test) == "string") {
 		if (env.resolveLocation) {
 			env.resolveLocation(test).then(tests => {
@@ -71,10 +79,6 @@ export default function run (test, options = {}) {
 			Test.warn(`Path ${options.path} produced no tests.`);
 			return;
 		}
-	}
-
-	if (env.setup) {
-		env.setup();
 	}
 
 	if (!(test instanceof Test)) {

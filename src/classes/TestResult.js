@@ -4,8 +4,25 @@ import format, { stripFormatting } from "../format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff } from "../util.js";
 import { IS_NODEJS } from "../util.js";
 
-// Make the diff package available both in Node.js and the browser
-const { diffChars } = await import(IS_NODEJS ? "diff" : "https://cdn.jsdelivr.net/npm/diff@7.0.0/lib/index.es6.js");
+let diffModule;
+// FIXME: Replace this dummy diff with a proper headless-safe diff import.
+let diffChars = (actual, expected) => [
+	{ value: actual, removed: true },
+	{ value: expected, added: true },
+]; // Dummy function for headless environments
+
+if (!globalThis?.__HTEST_HEADLESS__) {
+	// Load eagerly in non-headless environments (Node.js and the browser) so diffs are ready when needed.
+	let mod = await import(
+		IS_NODEJS
+			? "diff"
+			: "https://cdn.jsdelivr.net/npm/diff@8.0.3/dist/diff.min.js"
+	);
+	diffModule = mod?.default ?? mod;
+	if (typeof diffModule?.diffChars === "function") {
+		diffChars = diffModule.diffChars;
+	}
+}
 
 /**
  * Represents the result of a test or group of tests.
@@ -466,7 +483,11 @@ ${ this.error.stack }`);
 	 */
 	getMessages (o = {}) {
 		let ret = new String("<c yellow><b><i>(Messages)</i></b></c>");
-		ret.children = this.messages.map(m => `<dim>(${ m.method })</dim> ${ m.args.map(a => stringify(a)).join(" ") }`);
+		ret.children = (this.messages ?? []).map(m => {
+			let args = m.args ?? [];
+			args = m.stringified ? args.join(" ") : args.map(a => stringify(a)).join(" ");
+			return `<dim>(${ m.method })</dim> ${ args }`;
+		});
 
 		return o?.format === "rich" ? ret : stripFormatting(ret);
 	}

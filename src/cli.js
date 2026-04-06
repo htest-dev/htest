@@ -38,6 +38,8 @@ export async function getConfig (glob = CONFIG_GLOB) {
  * Supported flags:
  * --ci         Run in continuous integration mode (disables interactive features)
  * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
+ * --headless   Run in headless mode (implies --browser chromium)
+ * --browser    Browser to use for headless mode (chromium, firefox, webkit, chrome, edge)
  *
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
@@ -49,13 +51,23 @@ export default async function cli (options = {}) {
 
 	let argv = process.argv.slice(2);
 
-	const flags = ["ci", "verbose"];
+	const flags = ["ci", "verbose", "headless"];
 	for (let flag of flags) {
 		let flagIndex = argv.indexOf("--" + flag);
 		if (flagIndex !== -1) {
 			argv.splice(flagIndex, 1); // remove the flag from args
 			options[flag] = true;
 		}
+	}
+
+	let browserIndex = argv.indexOf("--browser");
+	if (browserIndex !== -1 && argv[browserIndex + 1]) {
+		options.browser = argv[browserIndex + 1];
+		argv.splice(browserIndex, 2);
+	}
+
+	if (options.headless) {
+		options.env = "headless";
 	}
 
 	let location = argv[0];

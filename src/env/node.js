@@ -135,13 +135,11 @@ export default {
 
 		if (!isInteractive) {
 			if (root.stats.pending === 0) {
-				if (root.stats.fail > 0 || options.verbose) {
-					let messages = root.toString(options);
-					let tree = getTree(messages).toString();
-					tree = format(tree);
+				let messages = root.toString(options);
+				let tree = getTree(messages).toString();
+				tree = format(tree);
 
-					console[root.stats.fail > 0 ? "error" : "log"](tree);
-				}
+				console[root.stats.fail > 0 ? "error" : "log"](tree);
 
 				process.exit(root.stats.fail > 0 ? 1 : 0);
 			}

@@ -1,11 +1,8 @@
 import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
-import format, { stripFormatting } from "../format-console.js";
-import { delay, formatDuration, interceptConsole, pluralize, stringify, formatDiff } from "../util.js";
-import { IS_NODEJS } from "../util.js";
-
-// Make the diff package available both in Node.js and the browser
-const { diffChars } = await import(IS_NODEJS ? "diff" : "https://cdn.jsdelivr.net/npm/diff@7.0.0/lib/index.es6.js");
+import { stripFormatting } from "../format-console.js";
+import { delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
+import { formatDiff } from "../format-diff.js";
 
 /**
  * Represents the result of a test or group of tests.
@@ -294,54 +291,23 @@ ${ this.error.stack }`);
 			}
 			else {
 				let actual = this.mapped?.actual ?? this.actual;
-				let actualString = stringify(actual);
-
 				let message;
+
 				if ("expect" in test) {
-					let expect = this.mapped?.expect ?? test.expect;
-					let expectString = stringify(expect);
-
-					let changes = diffChars(actualString, expectString);
-
-					// Calculate output lengths to determine formatting style
-					let actualLength = actualString.length;
-					if (this.mapped && actual !== this.actual) {
-						actualLength += stringify(this.actual).length;
-					}
-
-					let expectedLength = expectString.length;
-					if (this.mapped && expect !== test.expect) {
-						expectedLength += stringify(test.expect).length;
-					}
-
-					// TODO: Use global (?) option instead of the magic number 40
-					let inline = Math.max(actualLength, expectedLength) <= 40;
-					if (inline) {
-						message = `Got ${ formatDiff(changes) }`;
-						if (this.mapped && actual !== this.actual) {
-							message += ` <dim>(${ stringify(this.actual) } unmapped)</dim>`;
+					let expected = this.mapped?.expect ?? test.expect;
+					let unmapped = {};
+					if (this.mapped) {
+						if (actual !== this.actual) {
+							unmapped.actual = this.actual;
 						}
-
-						message += `, expected ${ formatDiff(changes, { expected: true }) }`;
-						if (this.mapped && expect !== test.expect) {
-							message += ` <dim>(${ stringify(test.expect) } unmapped)</dim>`;
+						if (expected !== test.expect) {
+							unmapped.expected = test.expect;
 						}
 					}
-					else {
-						// Vertical format for long values
-						message = "\n Actual:   " + formatDiff(changes);
-						if (this.mapped && actual !== this.actual) {
-							message += `\n\t\t  <dim>${ stringify(this.actual) } unmapped</dim>`;
-						}
-
-						message += "\n Expected: " + formatDiff(changes, { expected: true });
-						if (this.mapped && expect !== test.expect) {
-							message += `\n\t\t  <dim>${ stringify(test.expect) } unmapped</dim>`;
-						}
-					}
+					message = formatDiff(actual, expected, unmapped);
 				}
 				else {
-					message = `Got ${ actualString }`;
+					message = `Got ${ stringify(actual) }`;
 					if (this.mapped && actual !== this.actual) {
 						message += ` <dim>(${ stringify(this.actual) } unmapped)</dim>`;
 					}

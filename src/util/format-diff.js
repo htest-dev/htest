@@ -18,6 +18,14 @@ const CONTEXT = 2;
 /** Longer single-line text switches to two-line word-diff layout. */
 const INLINE_MAX = 40;
 
+/**
+ * Minimum fraction of characters a `-`/`+` pair must share for char-level
+ * highlighting. Below this, the pair is treated as unrelated lines and
+ * formatted plain — char-diff on unrelated content misleads by painting
+ * coincidental character overlaps as "common".
+ */
+const PAIR_SIMILARITY = 0.5;
+
 /** Per-side color, change-action key, and output label for diff formatting. */
 const sides = {
 	actual: { color: "red", action: "removed", label: " Actual:   " },
@@ -55,27 +63,6 @@ export function formatDiff (actual, expected, unmapped = {}) {
 		&& actualString.includes(" ") && expectedString.includes(" ");
 
 	return sideBySide(actualString, expectedString, unmapped, !long);
-}
-
-/**
- * Format a user-supplied value as a dim "unmapped" annotation. Four styles
- * match the four layouts that carry unmapped hints.
- */
-function formatUnmapped (value, style = "inline") {
-	value = stripFormatting(stringify(value));
-	let ret = ` <dim>(${value} unmapped)</dim>`;
-
-	if (style === "gutter") {
-		ret = `           <dim>${value} unmapped</dim>`;
-	}
-	else if (style === "actual") {
-		ret = ` <dim>Actual unmapped:   ${value}</dim>`;
-	}
-	else if (style === "expected") {
-		ret = ` <dim>Expected unmapped: ${value}</dim>`;
-	}
-
-	return ret;
 }
 
 function typeMismatch (actual, expected, actualType, expectedType, unmapped) {
@@ -134,6 +121,65 @@ function sideBySide (actualString, expectedString, unmapped, inline) {
 	return "\n" + lines.join("\n");
 }
 
+function lineDiff (actualString, expectedString, unmapped) {
+	// Flatten diffLines output to one entry per line. Each chunk ends with a
+	// trailing `\n`; splitting produces a spurious empty tail we drop.
+	let entries = [];
+	for (let change of diffLines(actualString, expectedString)) {
+		let prefix = change.added ? "+" : change.removed ? "-" : " ";
+		let side = change.added ? "expected" : change.removed ? "actual" : "common";
+		let texts = change.value.split("\n");
+		if (texts.at(-1) === "") {
+			texts.pop();
+		}
+		for (let text of texts) {
+			entries.push({ prefix, text, side });
+		}
+	}
+
+	let hunks = extractHunks(entries);
+	let lines = [" Actual ↔ Expected:"];
+
+	for (let hunk of hunks) {
+		if (hunk.elidedBefore > 0) {
+			lines.push(elision(hunk.elidedBefore));
+		}
+
+		let i = 0;
+		while (i < hunk.lines.length) {
+			let entry = hunk.lines[i];
+
+			if (entry.side === "common") {
+				lines.push(`  ${ entry.text }`);
+				i++;
+				continue;
+			}
+
+			let removed = [];
+			while (i < hunk.lines.length && hunk.lines[i].prefix === "-") {
+				removed.push(hunk.lines[i++]);
+			}
+			let added = [];
+			while (i < hunk.lines.length && hunk.lines[i].prefix === "+") {
+				added.push(hunk.lines[i++]);
+			}
+
+			lines.push(...formatBlock(removed, added));
+		}
+	}
+
+	let lastHunk = hunks.at(-1);
+	if (lastHunk?.elidedAfter > 0) {
+		lines.push(elision(lastHunk.elidedAfter));
+	}
+
+	for (let [side, value] of Object.entries(unmapped)) {
+		lines.push(formatUnmapped(value, side));
+	}
+
+	return "\n" + lines.join("\n");
+}
+
 /**
  * Format one side of a change array. Every changed run gets `<bg side-color><b>`
  * so all diffs — whitespace, token, or char — carry the same visual primitive.
@@ -163,69 +209,69 @@ function colorize (changes, side, prefix) {
 	return prefix ? `<bg lightblack>${ prefix } ${ ret }</bg>` : ret;
 }
 
-function lineDiff (actualString, expectedString, unmapped) {
-	// Flatten diffLines output to one entry per line. Each chunk ends with a
-	// trailing `\n`; splitting produces a spurious empty tail we drop.
-	let entries = [];
-	for (let change of diffLines(actualString, expectedString)) {
-		let prefix = change.added ? "+" : change.removed ? "-" : " ";
-		let side = change.added ? "expected" : change.removed ? "actual" : "common";
-		let texts = change.value.split("\n");
-		if (texts.at(-1) === "") {
-			texts.pop();
-		}
-		for (let text of texts) {
-			entries.push({ prefix, text, side });
-		}
-	}
+/**
+ * Format a `-` block followed by a `+` block. When counts match AND every
+ * paired line clears `PAIR_SIMILARITY`, emit interleaved char-diffed pairs so
+ * the reader sees per-char changes next to their sibling. Otherwise emit the
+ * block plain (all removes, then all adds) — forced char-diff on unrelated
+ * lines highlights coincidental character overlaps as "common" and misleads.
+ */
+function formatBlock (removed, added) {
+	if (removed.length > 0 && removed.length === added.length) {
+		var pairs = [];
 
-	let hunks = extractHunks(entries);
-	let lines = [" Actual ↔ Expected:"];
-
-	for (let hunk of hunks) {
-		if (hunk.elidedBefore > 0) {
-			lines.push(elision(hunk.elidedBefore));
-		}
-
-		for (let i = 0; i < hunk.lines.length; i++) {
-			let entry = hunk.lines[i];
-			let prev = hunk.lines[i - 1];
-			let next = hunk.lines[i + 1];
-			let after = hunk.lines[i + 2];
-
-			// Pair only a lone `-` with a lone `+`. Multi-line blocks stay plain:
-			// token-level highlighting across arbitrary alignments would mislead.
-			let isolatedPair =
-				entry.prefix === "-" && next?.prefix === "+"
-				&& (!prev || prev.prefix !== "-")
-				&& (!after || after.prefix !== "+");
-
-			if (isolatedPair) {
-				let changes = diffChars(entry.text, next.text);
-				lines.push(colorize(changes, "actual", "-"));
-				lines.push(colorize(changes, "expected", "+"));
-				i++;
+		for (let i = 0; i < removed.length; i++) {
+			let removedText = removed[i].text;
+			let addedText = added[i].text;
+			let changes = diffChars(removedText, addedText);
+			let common = 0;
+			for (let change of changes) {
+				if (!change.added && !change.removed) {
+					common += change.value.length;
+				}
 			}
-			else if (entry.side === "common") {
-				lines.push(`  ${ entry.text }`);
+			if (common / Math.max(removedText.length, addedText.length) < PAIR_SIMILARITY) {
+				pairs = null;
+				break;
 			}
-			else {
-				let { color } = sides[entry.side];
-				lines.push(`<bg lightblack>${ entry.prefix } <bg ${ color }><b>${ entry.text }</b></bg></bg>`);
-			}
+			pairs.push(changes);
 		}
 	}
 
-	let lastHunk = hunks.at(-1);
-	if (lastHunk?.elidedAfter > 0) {
-		lines.push(elision(lastHunk.elidedAfter));
+	if (pairs) {
+		let lines = [];
+		for (let changes of pairs) {
+			lines.push(colorize(changes, "actual", "-"));
+			lines.push(colorize(changes, "expected", "+"));
+		}
+		return lines;
 	}
 
-	for (let [side, value] of Object.entries(unmapped)) {
-		lines.push(formatUnmapped(value, side));
+	return [...removed, ...added].map(entry => {
+		let action = sides[entry.side].action;
+		return colorize([{ value: entry.text, [action]: true }], entry.side, entry.prefix);
+	});
+}
+
+/**
+ * Format a user-supplied value as a dim "unmapped" annotation. Four styles
+ * match the four layouts that carry unmapped hints.
+ */
+function formatUnmapped (value, style = "inline") {
+	value = stripFormatting(stringify(value));
+	let ret = ` <dim>(${ value } unmapped)</dim>`;
+
+	if (style === "gutter") {
+		ret = `           <dim>${ value } unmapped</dim>`;
+	}
+	else if (style === "actual") {
+		ret = ` <dim>Actual unmapped:   ${ value }</dim>`;
+	}
+	else if (style === "expected") {
+		ret = ` <dim>Expected unmapped: ${ value }</dim>`;
 	}
 
-	return "\n" + lines.join("\n");
+	return ret;
 }
 
 function elision (count) {

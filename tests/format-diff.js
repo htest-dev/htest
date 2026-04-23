@@ -32,18 +32,18 @@ export default {
 		{
 			name: "Inline char diff",
 			args: ["abc", "adc"],
-			expect: `Got "a<c red><b>b</b></c>c", expected "a<c green><b>d</b></c>c"`,
+			expect: `Got "a<bg red><b>b</b></bg>c", expected "a<bg green><b>d</b></bg>c"`,
 		},
 		{
 			name: "Two-line word diff",
 			args: [`${longPrefix} eta`, `${longPrefix} theta`],
-			expect: ` Actual:   "${longPrefix} <c red><b>eta</b></c>"
- Expected: "${longPrefix} <c green><b>theta</b></c>"`,
+			expect: ` Actual:   "${longPrefix} <bg red><b>eta</b></bg>"
+ Expected: "${longPrefix} <bg green><b>theta</b></bg>"`,
 		},
 		{
 			name: "Inline multiline string diff",
 			args: ["one\ntwo\nthree", "one\nTWO\nthree"],
-			expect: `Got "one\\n<c red><b>two</b></c>\\nthree", expected "one\\n<c green><b>TWO</b></c>\\nthree"`,
+			expect: `Got "one\\n<bg red><b>two</b></bg>\\nthree", expected "one\\n<bg green><b>TWO</b></bg>\\nthree"`,
 		},
 		{
 			name: "Elided array hunks",
@@ -59,18 +59,34 @@ export default {
   <dim>… 5 matching lines …</dim>
   	"line4",
   	"line5",
-<c red>- \t"<b>X</b>",</c>
-<c green>+ \t"<b>x</b>",</c>
+<bg lightblack>- \t"<bg red><b>X</b></bg>",</bg>
+<bg lightblack>+ \t"<bg green><b>x</b></bg>",</bg>
   	"line7",
   	"line8",
   <dim>… 3 matching lines …</dim>
   	"line12",
   	"line13",
-<c red>- \t"<b>Y</b>",</c>
-<c green>+ \t"<b>y</b>",</c>
+<bg lightblack>- \t"<bg red><b>Y</b></bg>",</bg>
+<bg lightblack>+ \t"<bg green><b>y</b></bg>",</bg>
   	"line15",
   	"line16",
   ]`,
+		},
+		{
+			name: "Char-diff on long line with small change",
+			args: [
+				elisionBase.map(line => line === "line6" ? "a long line with v1 change" : line),
+				elisionBase.map(line => line === "line6" ? "a long line with v2 change" : line),
+			],
+			expect: ` Actual ↔ Expected:
+  <dim>… 5 matching lines …</dim>
+  	"line4",
+  	"line5",
+<bg lightblack>- \t"a long line with v<bg red><b>1</b></bg> change",</bg>
+<bg lightblack>+ \t"a long line with v<bg green><b>2</b></bg> change",</bg>
+  	"line7",
+  	"line8",
+  <dim>… 9 matching lines …</dim>`,
 		},
 	],
 };

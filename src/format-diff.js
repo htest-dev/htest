@@ -135,12 +135,13 @@ function sideBySide (actualString, expectedString, unmapped, inline) {
 }
 
 /**
- * Format one side of a change array. Whitespace-only runs get `<bg>` so
- * whitespace-only diffs stay visible.
+ * Format one side of a change array. Every changed run gets `<bg side-color><b>`
+ * so all diffs — whitespace, token, or char — carry the same visual primitive.
  *
- * Without `prefix`: per-token `<c color>` wrap, common parts uncolored.
- * With `prefix`: one outer `<c color>` wraps the whole line with `prefix` in front,
- * tokens inside use plain `<b>`. Use this when a line is already committed to one side.
+ * Without `prefix`: returns mixed common/changed text; caller decides line framing.
+ * With `prefix`: wraps the whole line in neutral `<bg lightblack>` with `prefix`
+ * in front; chunk bgs inside stack over the neutral line bg so changed chars
+ * pop while the rest of the line keeps a faint "this line changed" tint.
  */
 function colorize (changes, side, prefix) {
 	let { color, action } = sides[side];
@@ -151,25 +152,15 @@ function colorize (changes, side, prefix) {
 			continue;
 		}
 
-		if (!change[action]) {
-			ret += change.value;
-			continue;
+		if (change[action]) {
+			ret += `<bg ${ color }><b>${ change.value }</b></bg>`;
 		}
-
-		for (let part of change.value.split(/(\s+)/)) {
-			if (!part) {
-				continue;
-			}
-			if (/^\s+$/.test(part)) {
-				ret += `<bg ${ color }>${ part }</bg>`;
-			}
-			else {
-				ret += prefix ? `<b>${ part }</b>` : `<c ${ color }><b>${ part }</b></c>`;
-			}
+		else {
+			ret += change.value;
 		}
 	}
 
-	return prefix ? `<c ${ color }>${ prefix } ${ ret }</c>` : ret;
+	return prefix ? `<bg lightblack>${ prefix } ${ ret }</bg>` : ret;
 }
 
 function lineDiff (actualString, expectedString, unmapped) {
@@ -210,7 +201,7 @@ function lineDiff (actualString, expectedString, unmapped) {
 				&& (!after || after.prefix !== "+");
 
 			if (isolatedPair) {
-				let changes = diffWords(entry.text, next.text);
+				let changes = diffChars(entry.text, next.text);
 				lines.push(colorize(changes, "actual", "-"));
 				lines.push(colorize(changes, "expected", "+"));
 				i++;
@@ -220,7 +211,7 @@ function lineDiff (actualString, expectedString, unmapped) {
 			}
 			else {
 				let { color } = sides[entry.side];
-				lines.push(`<c ${ color }>${ entry.prefix } ${ entry.text }</c>`);
+				lines.push(`<bg lightblack>${ entry.prefix } <bg ${ color }><b>${ entry.text }</b></bg></bg>`);
 			}
 		}
 	}

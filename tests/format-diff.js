@@ -88,5 +88,58 @@ export default {
   	"line8",
   <dim>… 9 matching lines …</dim>`,
 		},
+		{
+			name: "Similar lines pair up",
+			args: [
+				elisionBase.map((l, i) => i === 6 ? "foo1" : i === 7 ? "bar2" : l),
+				elisionBase.map((l, i) => i === 6 ? "foo5" : i === 7 ? "bar7" : l),
+			],
+			expect: ` Actual ↔ Expected:
+  <dim>… 5 matching lines …</dim>
+  	"line4",
+  	"line5",
+<bg lightblack>- \t"foo<bg red><b>1</b></bg>",</bg>
+<bg lightblack>+ \t"foo<bg green><b>5</b></bg>",</bg>
+<bg lightblack>- \t"bar<bg red><b>2</b></bg>",</bg>
+<bg lightblack>+ \t"bar<bg green><b>7</b></bg>",</bg>
+  	"line8",
+  	"line9",
+  <dim>… 8 matching lines …</dim>`,
+		},
+		{
+			name: "Dissimilar lines stay plain",
+			args: [
+				elisionBase.map((l, i) => i === 6 ? "aaaaa" : i === 7 ? "bbbbb" : l),
+				elisionBase.map((l, i) => i === 6 ? "xxxxx" : i === 7 ? "yyyyy" : l),
+			],
+			expect: ` Actual ↔ Expected:
+  <dim>… 5 matching lines …</dim>
+  	"line4",
+  	"line5",
+<bg lightblack>- <bg red><b>\t"aaaaa",</b></bg></bg>
+<bg lightblack>- <bg red><b>\t"bbbbb",</b></bg></bg>
+<bg lightblack>+ <bg green><b>\t"xxxxx",</b></bg></bg>
+<bg lightblack>+ <bg green><b>\t"yyyyy",</b></bg></bg>
+  	"line8",
+  	"line9",
+  <dim>… 8 matching lines …</dim>`,
+		},
+		{
+			name: "Unequal counts stay plain",
+			args: [
+				elisionBase.map((l, i) => i === 6 ? "foo" : i === 7 ? "bar" : l),
+				elisionBase.map((l, i) => i === 6 ? "baz" : l).filter((_, i) => i !== 7),
+			],
+			expect: ` Actual ↔ Expected:
+  <dim>… 5 matching lines …</dim>
+  	"line4",
+  	"line5",
+<bg lightblack>- <bg red><b>\t"foo",</b></bg></bg>
+<bg lightblack>- <bg red><b>\t"bar",</b></bg></bg>
+<bg lightblack>+ <bg green><b>\t"baz",</b></bg></bg>
+  	"line8",
+  	"line9",
+  <dim>… 8 matching lines …</dim>`,
+		},
 	],
 };

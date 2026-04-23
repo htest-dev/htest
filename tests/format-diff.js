@@ -1,4 +1,4 @@
-import { formatDiff } from "../src/format-diff.js";
+import { formatDiff } from "../src/util/format-diff.js";
 
 const longPrefix = `${"chunk ".repeat(7)}tail`;
 const elisionBase = Array.from({ length: 17 }, (_, i) => `line${i}`);

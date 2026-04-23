@@ -1,5 +1,5 @@
-import { IS_NODEJS, getType, pluralize, stringify } from "./util.js";
-import { stripFormatting } from "./format-console.js";
+import { IS_NODEJS, getType, pluralize, stringify } from "../util.js";
+import { stripFormatting } from "../format-console.js";
 
 // Dual Node/browser import. Kept version in the CDN URL in sync with package.json.
 // `diffWordsWithSpace` keeps whitespace as part of token boundaries so the

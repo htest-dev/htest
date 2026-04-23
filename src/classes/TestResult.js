@@ -2,7 +2,7 @@ import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
 import { stripFormatting } from "../format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
-import { formatDiff } from "../format-diff.js";
+import { formatDiff } from "../util/format-diff.js";
 
 /**
  * Represents the result of a test or group of tests.

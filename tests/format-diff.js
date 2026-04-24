@@ -73,75 +73,6 @@ export default {
   ]`,
 		},
 		{
-			name: "Char-diff on long line with small change",
-			args: [
-				elisionBase.map(line => line === "line6" ? "a long line with v1 change" : line),
-				elisionBase.map(line => line === "line6" ? "a long line with v2 change" : line),
-			],
-			expect: ` Actual ↔ Expected:
-  <dim>… 5 matching lines …</dim>
-  	"line4",
-  	"line5",
-<bg lightblack>- \t"a long line with v<bg red><b>1</b></bg> change",</bg>
-<bg lightblack>+ \t"a long line with v<bg green><b>2</b></bg> change",</bg>
-  	"line7",
-  	"line8",
-  <dim>… 9 matching lines …</dim>`,
-		},
-		{
-			name: "Similar lines pair up",
-			args: [
-				elisionBase.map((l, i) => i === 6 ? "foo1" : i === 7 ? "bar2" : l),
-				elisionBase.map((l, i) => i === 6 ? "foo5" : i === 7 ? "bar7" : l),
-			],
-			expect: ` Actual ↔ Expected:
-  <dim>… 5 matching lines …</dim>
-  	"line4",
-  	"line5",
-<bg lightblack>- \t"foo<bg red><b>1</b></bg>",</bg>
-<bg lightblack>+ \t"foo<bg green><b>5</b></bg>",</bg>
-<bg lightblack>- \t"bar<bg red><b>2</b></bg>",</bg>
-<bg lightblack>+ \t"bar<bg green><b>7</b></bg>",</bg>
-  	"line8",
-  	"line9",
-  <dim>… 8 matching lines …</dim>`,
-		},
-		{
-			name: "Dissimilar lines stay plain",
-			args: [
-				elisionBase.map((l, i) => i === 6 ? "aaaaa" : i === 7 ? "bbbbb" : l),
-				elisionBase.map((l, i) => i === 6 ? "xxxxx" : i === 7 ? "yyyyy" : l),
-			],
-			expect: ` Actual ↔ Expected:
-  <dim>… 5 matching lines …</dim>
-  	"line4",
-  	"line5",
-<bg lightblack>- <bg red><b>\t"aaaaa",</b></bg></bg>
-<bg lightblack>- <bg red><b>\t"bbbbb",</b></bg></bg>
-<bg lightblack>+ <bg green><b>\t"xxxxx",</b></bg></bg>
-<bg lightblack>+ <bg green><b>\t"yyyyy",</b></bg></bg>
-  	"line8",
-  	"line9",
-  <dim>… 8 matching lines …</dim>`,
-		},
-		{
-			name: "Unequal counts stay plain",
-			args: [
-				elisionBase.map((l, i) => i === 6 ? "foo" : i === 7 ? "bar" : l),
-				elisionBase.map((l, i) => i === 6 ? "baz" : l).filter((_, i) => i !== 7),
-			],
-			expect: ` Actual ↔ Expected:
-  <dim>… 5 matching lines …</dim>
-  	"line4",
-  	"line5",
-<bg lightblack>- <bg red><b>\t"foo",</b></bg></bg>
-<bg lightblack>- <bg red><b>\t"bar",</b></bg></bg>
-<bg lightblack>+ <bg green><b>\t"baz",</b></bg></bg>
-  	"line8",
-  	"line9",
-  <dim>… 8 matching lines …</dim>`,
-		},
-		{
 			name: "Multi-line diff",
 			// Wrap inputs so stringify() emits the raw text (with real `\n`)
 			// and lineDiff triggers without hitting the array multi-line threshold.
@@ -152,14 +83,40 @@ export default {
 			},
 			tests: [
 				{
-					name: "with unmapped values",
-					args: ["foo\nbar\n", "foo\nbaz\n", { actual: "raw_a", expected: "raw_b" }],
+					name: "paired char-diff with unmapped values",
+					args: ["foo\nbar\n", "foo\nbaz\n", { actual: "bar", expected: "yolo" }],
 					expect: ` Actual ↔ Expected:
   foo
 <bg lightblack>- ba<bg red><b>r</b></bg></bg>
 <bg lightblack>+ ba<bg green><b>z</b></bg></bg>
- <dim>Actual unmapped:   "raw_a"</dim>
- <dim>Expected unmapped: "raw_b"</dim>`,
+ <dim>Actual unmapped:   "bar"</dim>
+ <dim>Expected unmapped: "yolo"</dim>`,
+				},
+				{
+					name: "multiple paired lines",
+					args: ["foo13\nbar42\n", "foo25\nbar47\n"],
+					expect: ` Actual ↔ Expected:
+<bg lightblack>- foo<bg red><b>13</b></bg></bg>
+<bg lightblack>+ foo<bg green><b>25</b></bg></bg>
+<bg lightblack>- bar4<bg red><b>2</b></bg></bg>
+<bg lightblack>+ bar4<bg green><b>7</b></bg></bg>`,
+				},
+				{
+					name: "dissimilar lines stay plain",
+					args: ["aaaaa\nbbbbb\n", "xxxxx\nyyyyy\n"],
+					expect: ` Actual ↔ Expected:
+<bg lightblack>- <bg red><b>aaaaa</b></bg></bg>
+<bg lightblack>- <bg red><b>bbbbb</b></bg></bg>
+<bg lightblack>+ <bg green><b>xxxxx</b></bg></bg>
+<bg lightblack>+ <bg green><b>yyyyy</b></bg></bg>`,
+				},
+				{
+					name: "unequal counts stay plain",
+					args: ["foo\nbar\n", "baz\n"],
+					expect: ` Actual ↔ Expected:
+<bg lightblack>- <bg red><b>foo</b></bg></bg>
+<bg lightblack>- <bg red><b>bar</b></bg></bg>
+<bg lightblack>+ <bg green><b>baz</b></bg></bg>`,
 				},
 				{
 					name: "added line",

@@ -1,62 +1,86 @@
-import format, { stripFormatting } from "../src/util/format-console.js";
-import chalk from "chalk";
-
-// We don't want to use map because it will output unmapped values on fail as well, causing a mess in this very special case
-function escape (str) {
-	return str.replaceAll("\x1b", "\\x1b");
-}
+import format, { stripFormatting, detectMode } from "../src/util/format-console.js";
 
 export default {
-	name: "Console formatting tests",
+	name: "format-console",
+	map: str => str.replaceAll("\x1b", "\\x1b"),
 	tests: [
 		{
-			name: "Formatting",
-			run (str) {
-				return escape(format(str));
+			name: "format()",
+			run (arg) {
+				return format(arg, { ...(this.data ?? {}) });
 			},
 			tests: [
 				{
-					name: "Bold",
-					args: "<b>bold</b>",
-					expect: "\\x1b[1mbold\\x1b[0m",
+					name: "Truecolor",
+					data: { mode: "truecolor" },
+					tests: [
+						{ name: "Bold modifier",          arg: "<b>x</b>",                   expect: "\x1b[1mx\x1b[0m" },
+						{ name: "Semantic token",         arg: "<c pass>x</c>",              expect: "\x1b[38;2;166;227;161mx\x1b[0m" },
+						{ name: "Hex literal",            arg: "<c #ff0000>x</c>",           expect: "\x1b[38;2;255;0;0mx\x1b[0m" },
+						{ name: "Background",             arg: "<bg pass>x</bg>",            expect: "\x1b[48;2;166;227;161mx\x1b[0m" },
+						{ name: "Nested preserves outer", arg: "<c pass><c fail>x</c>y</c>",
+						  expect: "\x1b[38;2;166;227;161m\x1b[38;2;243;139;168mx\x1b[0m\x1b[38;2;166;227;161my\x1b[0m" },
+						{ name: "Diff-style", arg: "<bg gutter> <c diff-added>+ added</c> <c diff-removed>- removed</c></bg>",
+						  expect: "\x1b[48;2;49;50;68m \x1b[38;2;46;75;58m+ added\x1b[0m\x1b[48;2;49;50;68m \x1b[38;2;75;46;56m- removed\x1b[0m\x1b[48;2;49;50;68m\x1b[0m" },
+						{ name: "Unknown color ignored",  arg: "<c nope>x</c>",              expect: "x\x1b[0m" },
+					],
 				},
 				{
-					name: "Text color",
-					args: "<c red>red</c>",
-					expect: "\\x1b[31mred\\x1b[0m",
+					name: "256",
+					data: { mode: "256" },
+					tests: [
+						{ name: "Semantic token (pass → #a6e3a1 → index 151)", arg: "<c pass>x</c>",    expect: "\x1b[38;5;151mx\x1b[0m" },
+						{ name: "Hex literal red → index 196",                 arg: "<c #ff0000>x</c>", expect: "\x1b[38;5;196mx\x1b[0m" },
+					],
 				},
 				{
-					name: "Background color",
-					args: "<bg red>red</bg>",
-					expect: "\\x1b[41mred\\x1b[0m",
+					name: "Strip",
+					data: { mode: "strip" },
+					tests: [
+						{ name: "Colors stripped, modifiers kept", arg: "<b><c pass>x</c></b>",
+						  expect: "\x1b[1mx\x1b[0m\x1b[1m\x1b[0m" },
+					],
 				},
 				{
-					name: "Light color",
-					args: "<c lightred>light red</c>",
-					// expect: "\\x1b[91mlight red\\x1b[0m"
-					expect: escape(chalk.redBright("light red")),
-				},
-				{
-					name: "Light background color",
-					args: "<bg lightred>light red</bg>",
-					// expect: "\\x1b[101mlight red\\x1b[0m"
-					expect: escape(chalk.bgRedBright("light red")),
+					name: "CSS",
+					data: { css: true },
+					tests: [
+						{ name: "Single foreground", arg: "<c pass>x</c>",
+						  expect: ["%cx%c", "color:#a6e3a1", ""] },
+						{ name: "Nested foreground", arg: "<c pass><c fail>x</c></c>",
+						  expect: ["%c%cx%c%c", "color:#a6e3a1", "color:#f38ba8", "color:#a6e3a1", ""] },
+						{ name: "Background plus bold", arg: "<b><bg pass>x</bg></b>",
+						  expect: ["%c%cx%c%c", "font-weight:bold", "font-weight:bold;background:#a6e3a1", "font-weight:bold", ""] },
+						{ name: "Diff-style", arg: "<bg gutter> <c diff-added>+ added</c> <c diff-removed>- removed</c></bg>",
+						  expect: ["%c %c+ added%c %c- removed%c%c",
+						           "background:#313244",
+						           "color:#2e4b3a;background:#313244",
+						           "background:#313244",
+						           "color:#4b2e38;background:#313244",
+						           "background:#313244",
+						           ""] },
+					],
 				},
 			],
 		},
 		{
-			name: "Strip formatting",
+			name: "detectMode()",
+			run: detectMode,
+			tests: [
+				{ name: "NO_COLOR wins over FORCE_COLOR", arg: { NO_COLOR: "1", FORCE_COLOR: "3" }, expect: "strip" },
+				{ name: "FORCE_COLOR=3",    arg: { FORCE_COLOR: "3" },        expect: "truecolor" },
+				{ name: "FORCE_COLOR=0",    arg: { FORCE_COLOR: "0" },        expect: "strip" },
+				{ name: "COLORTERM",        arg: { COLORTERM: "truecolor" },  expect: "truecolor" },
+				{ name: "TERM pattern",     arg: { TERM: "xterm-truecolor" }, expect: "truecolor" },
+				{ name: "Default fallback", arg: {},                          expect: "256" },
+			],
+		},
+		{
+			name: "stripFormatting()",
 			run: stripFormatting,
 			tests: [
-				{
-					args: "<b>bold</b>",
-					expect: "bold",
-				},
-				{
-					name: "Malformed tags",
-					args: "bold</b> <c red>red?",
-					expect: "bold red?",
-				},
+				{ arg: "<b><c pass>x</c></b>",     expect: "x" },
+				{ name: "Malformed tags", arg: "bold</b> <c pass>x?", expect: "bold x?" },
 			],
 		},
 	],

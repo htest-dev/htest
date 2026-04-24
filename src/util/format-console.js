@@ -10,15 +10,9 @@ import { IS_NODEJS } from "../util.js";
 import palette from "./palette.js";
 
 const modifiers = {
-	b: "\x1b[1m",
-	i: "\x1b[3m",
-	dim: "\x1b[2m",
-};
-
-const cssModifiers = {
-	b: "font-weight:bold",
-	i: "font-style:italic",
-	dim: "opacity:0.6",
+	b: { ansi: "\x1b[1m", css: "font-weight: bold" },
+	i: { ansi: "\x1b[3m", css: "font-style: italic" },
+	dim: { ansi: "\x1b[2m", css: "opacity: 0.6" },
 };
 
 // Matches opening/closing tags. Color value allows letters, digits, dash, hash.
@@ -142,7 +136,7 @@ function emitAnsi (tokens, mode) {
 	let replay = () => {
 		output += "\x1b[0m";
 		for (let modifier of activeModifiers) {
-			output += modifiers[modifier];
+			output += modifiers[modifier].ansi;
 		}
 		let foreground = foregroundStack.findLast(hex => hex);
 		if (foreground) {
@@ -176,7 +170,7 @@ function emitAnsi (tokens, mode) {
 			}
 			else if (modifiers[token.tag]) {
 				activeModifiers.add(token.tag);
-				output += modifiers[token.tag];
+				output += modifiers[token.tag].ansi;
 			}
 		}
 		else {
@@ -205,18 +199,18 @@ function emitCss (tokens) {
 	let pushStyle = () => {
 		let parts = [];
 		for (let modifier of activeModifiers) {
-			parts.push(cssModifiers[modifier]);
+			parts.push(modifiers[modifier].css);
 		}
 		let foreground = foregroundStack.findLast(hex => hex);
 		if (foreground) {
-			parts.push(`color:${foreground}`);
+			parts.push(`color: ${foreground}`);
 		}
 		let background = backgroundStack.findLast(hex => hex);
 		if (background) {
-			parts.push(`background:${background}`);
+			parts.push(`background: ${background}`);
 		}
 		text += "%c";
-		styles.push(parts.join(";"));
+		styles.push(parts.join("; "));
 	};
 
 	for (let token of tokens) {
@@ -235,7 +229,7 @@ function emitCss (tokens) {
 				backgroundStack.push(hex);
 				pushStyle();
 			}
-			else if (cssModifiers[token.tag]) {
+			else if (modifiers[token.tag]) {
 				activeModifiers.add(token.tag);
 				pushStyle();
 			}

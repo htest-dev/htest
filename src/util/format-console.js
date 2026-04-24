@@ -31,29 +31,21 @@ const tagRegex = /<\/?(b|i|dim|c|bg)(?:\s+([\w#-]+))?\s*>/gi;
  * @returns {"truecolor" | "256" | "strip"}
  */
 export function detectMode (env = process?.env ?? {}) {
-	if (env.NO_COLOR) {
-		return "strip";
+	let ret = "256"; // env.FORCE_COLOR === "2" || env.FORCE_COLOR === "1" || no env;
+
+	if (env.NO_COLOR || env.FORCE_COLOR === "0") {
+		ret = "strip";
 	}
-	if (env.FORCE_COLOR === "0") {
-		return "strip";
-	}
-	if (env.FORCE_COLOR === "3") {
-		return "truecolor";
-	}
-	if (env.FORCE_COLOR === "2" || env.FORCE_COLOR === "1") {
-		return "256";
+	else if (
+		env.FORCE_COLOR === "3" ||
+		env.COLORTERM === "truecolor" ||
+		env.COLORTERM === "24bit" ||
+		/-truecolor|-direct|-24bit/.test(env.TERM ?? "")
+	) {
+		ret = "truecolor";
 	}
 
-	if (env.COLORTERM === "truecolor" || env.COLORTERM === "24bit") {
-		return "truecolor";
-	}
-
-	let term = env.TERM || "";
-	if (/-truecolor|-direct|-24bit/.test(term)) {
-		return "truecolor";
-	}
-
-	return "256";
+	return ret;
 }
 
 const detectedMode = IS_NODEJS ? detectMode() : "truecolor";

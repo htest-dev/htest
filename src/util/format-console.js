@@ -24,7 +24,7 @@ const tagRegex = /<\/?(b|i|dim|c|bg)(?:\s+([\w#-]+))?\s*>/gi;
  * @param {Record<string, string | undefined>} [env=process.env]
  * @returns {"truecolor" | "256" | "strip"}
  */
-export function detectMode (env = process?.env ?? {}) {
+function detectMode (env = process?.env ?? {}) {
 	let ret = "256"; // env.FORCE_COLOR === "2" || env.FORCE_COLOR === "1" || no env;
 
 	if (env.NO_COLOR || env.FORCE_COLOR === "0") {

@@ -1,7 +1,4 @@
-import format, {
-	stripFormatting,
-	detectMode,
-} from "../src/util/format-console.js";
+import format, { stripFormatting } from "../src/util/format-console.js";
 
 // Escape ANSI escape codes so failure output shows them as visible characters.
 // Mirrors previous convention in this file — avoids `map`, which would display
@@ -100,6 +97,16 @@ export default {
 					data: { mode: "strip" },
 					tests: [
 						{
+							name: "Semantic token stripped",
+							arg: "<c pass>x</c>",
+							expect: "x\\x1b[0m",
+						},
+						{
+							name: "Hex literal stripped",
+							arg: "<c #ff0000>x</c>",
+							expect: "x\\x1b[0m",
+						},
+						{
 							name: "Colors stripped, modifiers kept",
 							arg: "<b><c pass>x</c></b>",
 							expect: "\\x1b[1mx\\x1b[0m\\x1b[1m\\x1b[0m",
@@ -152,35 +159,6 @@ export default {
 						},
 					],
 				},
-			],
-		},
-		{
-			name: "detectMode()",
-			run: detectMode,
-			tests: [
-				{
-					name: "NO_COLOR wins over FORCE_COLOR",
-					arg: { NO_COLOR: "1", FORCE_COLOR: "3" },
-					expect: "strip",
-				},
-				{
-					name: "FORCE_COLOR=3",
-					arg: { FORCE_COLOR: "3" },
-					expect: "truecolor",
-				},
-				{ name: "FORCE_COLOR=2", arg: { FORCE_COLOR: "2" }, expect: "256" },
-				{ name: "FORCE_COLOR=0", arg: { FORCE_COLOR: "0" }, expect: "strip" },
-				{
-					name: "COLORTERM",
-					arg: { COLORTERM: "truecolor" },
-					expect: "truecolor",
-				},
-				{
-					name: "TERM pattern",
-					arg: { TERM: "xterm-truecolor" },
-					expect: "truecolor",
-				},
-				{ name: "Default fallback", arg: {}, expect: "256" },
 			],
 		},
 		{

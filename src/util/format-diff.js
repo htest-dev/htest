@@ -18,19 +18,71 @@ const CONTEXT = 2;
 /** Longer single-line text switches to two-line word-diff layout. */
 const INLINE_MAX = 40;
 
-/**
- * Minimum fraction of characters a `-`/`+` pair must share for char-level
- * highlighting. Below this, the pair is treated as unrelated lines and
- * formatted plain — char-diff on unrelated content misleads by painting
- * coincidental character overlaps as "common".
- */
-const PAIR_SIMILARITY = 0.5;
-
 /** Per-side color, change-action key, and output label for diff formatting. */
 const sides = {
 	actual: { color: "red", action: "removed", label: " Actual:   " },
 	expected: { color: "green", action: "added", label: " Expected: " },
 };
+
+/**
+ * Post-process `diffChars` output to merge short coincidental common runs into
+ * surrounding edits. A common chunk survives as a boundary iff it's longer
+ * than the edits on *either* adjacent side — if it's shorter than both, the
+ * whole region (commons + edits between two boundaries) collapses to one
+ * removed + one added block.
+ * @param {Change[]} changes
+ * @returns {Change[]}
+ */
+function cleanup (changes) {
+	let boundary = changes.map(() => false);
+	for (let i = 0; i < changes.length; i++) {
+		let change = changes[i];
+		if (change.added || change.removed) {
+			continue;
+		}
+		let before = 0;
+		for (let j = i - 1; j >= 0 && (changes[j].added || changes[j].removed); j--) {
+			before += changes[j].value.length;
+		}
+		let after = 0;
+		for (let j = i + 1; j < changes.length && (changes[j].added || changes[j].removed); j++) {
+			after += changes[j].value.length;
+		}
+		if (change.value.length > before || change.value.length > after) {
+			boundary[i] = true;
+		}
+	}
+
+	let ret = [];
+	let i = 0;
+	while (i < changes.length) {
+		if (boundary[i]) {
+			ret.push(changes[i++]);
+			continue;
+		}
+		let removed = "", added = "";
+		while (i < changes.length && !boundary[i]) {
+			let change = changes[i++];
+			if (change.removed) {
+				removed += change.value;
+			}
+			else if (change.added) {
+				added += change.value;
+			}
+			else {
+				removed += change.value;
+				added += change.value;
+			}
+		}
+		if (removed) {
+			ret.push({ value: removed, removed: true });
+		}
+		if (added) {
+			ret.push({ value: added, added: true });
+		}
+	}
+	return ret;
+}
 
 /**
  * Format a failure message comparing `actual` to `expected`, choosing a layout
@@ -99,7 +151,9 @@ function typeMismatch (actual, expected, actualType, expectedType, unmapped) {
  * driven by char-diff or word-diff depending on `inline`.
  */
 function sideBySide (actualString, expectedString, unmapped, inline) {
-	let changes = (inline ? diffChars : diffWords)(actualString, expectedString);
+	let changes = inline
+		? cleanup(diffChars(actualString, expectedString))
+		: diffWords(actualString, expectedString);
 	let actual = colorize(changes, "actual");
 	let expected = colorize(changes, "expected");
 
@@ -221,38 +275,17 @@ function colorize (changes, side, prefix) {
 }
 
 /**
- * Format a `-` block followed by a `+` block. When counts match AND every
- * paired line clears `PAIR_SIMILARITY`, emit interleaved char-diffed pairs so
- * the reader sees per-char changes next to their sibling. Otherwise emit the
- * block plain (all removes, then all adds) — forced char-diff on unrelated
- * lines highlights coincidental character overlaps as "common" and misleads.
+ * Format a `-` block followed by a `+` block. When counts match, emit
+ * interleaved char-diffed pairs — `cleanup` ensures dissimilar pairs
+ * collapse to a single red + single green block automatically, so no similarity
+ * threshold is needed. Unequal counts (pure add, pure remove, or mixed
+ * mismatched) fall back to a plain sequence: all removes, then all adds.
  */
 function formatBlock (removed, added) {
-	let pairs = null;
-	if (removed.length > 0 && removed.length === added.length) {
-		pairs = [];
-
-		for (let i = 0; i < removed.length; i++) {
-			let removedText = removed[i].text;
-			let addedText = added[i].text;
-			let changes = diffChars(removedText, addedText);
-			let common = 0;
-			for (let change of changes) {
-				if (!change.added && !change.removed) {
-					common += change.value.length;
-				}
-			}
-			if (common / Math.max(removedText.length, addedText.length) < PAIR_SIMILARITY) {
-				pairs = null;
-				break;
-			}
-			pairs.push(changes);
-		}
-	}
-
-	if (pairs) {
+	if (removed.length === added.length) {
 		let lines = [];
-		for (let changes of pairs) {
+		for (let i = 0; i < removed.length; i++) {
+			let changes = cleanup(diffChars(removed[i].text, added[i].text));
 			lines.push(colorize(changes, "actual", "-"));
 			lines.push(colorize(changes, "expected", "+"));
 		}

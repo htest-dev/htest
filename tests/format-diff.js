@@ -102,12 +102,19 @@ export default {
 <bg lightblack>+ bar4<bg green><b>7</b></bg></bg>`,
 				},
 				{
-					name: "dissimilar lines stay plain",
+					name: "noisy swap collapses via cleanup",
+					args: ["fix: button alignment\n", "fix: button padding\n"],
+					expect: ` Actual ↔ Expected:
+<bg lightblack>- fix: button <bg red><b>alignment</b></bg></bg>
+<bg lightblack>+ fix: button <bg green><b>padding</b></bg></bg>`,
+				},
+				{
+					name: "dissimilar lines interleave (cleanup collapses each pair)",
 					args: ["aaaaa\nbbbbb\n", "xxxxx\nyyyyy\n"],
 					expect: ` Actual ↔ Expected:
 <bg lightblack>- <bg red><b>aaaaa</b></bg></bg>
-<bg lightblack>- <bg red><b>bbbbb</b></bg></bg>
 <bg lightblack>+ <bg green><b>xxxxx</b></bg></bg>
+<bg lightblack>- <bg red><b>bbbbb</b></bg></bg>
 <bg lightblack>+ <bg green><b>yyyyy</b></bg></bg>`,
 				},
 				{

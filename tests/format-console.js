@@ -1,4 +1,4 @@
-import format, { stripFormatting } from "../src/format-console.js";
+import format, { stripFormatting } from "../src/util/format-console.js";
 import chalk from "chalk";
 
 // We don't want to use map because it will output unmapped values on fail as well, causing a mess in this very special case

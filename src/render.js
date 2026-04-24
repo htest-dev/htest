@@ -7,7 +7,7 @@ import TestResult from "./classes/TestResult.js";
 import RefTest from "https://html.htest.dev/src/classes/RefTest.js";
 import { create, output } from "https://html.htest.dev/src/util.js";
 import { formatDuration } from "./util.js";
-import format from "./format-console.js";
+import format from "./util/format-console.js";
 
 export default function render (test) {
 	let root = new Test(test);

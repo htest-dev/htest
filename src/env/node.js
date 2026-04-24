@@ -10,7 +10,7 @@ import { AsciiTree } from "oo-ascii-tree";
 import { globSync } from "glob";
 
 // Internal modules
-import format from "../format-console.js";
+import format from "../util/format-console.js";
 import { getType } from "../util.js";
 
 /**

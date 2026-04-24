@@ -1,4 +1,4 @@
-import format from "../format-console.js";
+import format from "../util/format-console.js";
 
 function printTree (str, parent) {
 	if (str.children?.length > 0) {

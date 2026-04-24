@@ -32,31 +32,31 @@ export default {
 		{
 			name: "Inline char diff",
 			args: ["abc", "adc"],
-			expect: `Got "a<bg diff-removed-emph><b>b</b></bg>c", expected "a<bg diff-added-emph><b>d</b></bg>c"`,
+			expect: `Got "a<bg diff-removed-tint><b>b</b></bg>c", expected "a<bg diff-added-tint><b>d</b></bg>c"`,
 		},
 		{
 			name: "Inline char diff with unmapped values",
 			args: ["abc", "adc", { actual: "foo", expected: "bar" }],
-			expect: `Got "a<bg diff-removed-emph><b>b</b></bg>c" <dim>("foo" unmapped)</dim>, expected "a<bg diff-added-emph><b>d</b></bg>c" <dim>("bar" unmapped)</dim>`,
+			expect: `Got "a<bg diff-removed-tint><b>b</b></bg>c" <dim>("foo" unmapped)</dim>, expected "a<bg diff-added-tint><b>d</b></bg>c" <dim>("bar" unmapped)</dim>`,
 		},
 		{
 			name: "Two-line word diff",
 			args: [`${longPrefix} eta`, `${longPrefix} theta`],
-			expect: ` Actual:   "${longPrefix} <bg diff-removed-emph><b>eta</b></bg>"
- Expected: "${longPrefix} <bg diff-added-emph><b>theta</b></bg>"`,
+			expect: ` Actual:   "${longPrefix} <bg diff-removed-tint><b>eta</b></bg>"
+ Expected: "${longPrefix} <bg diff-added-tint><b>theta</b></bg>"`,
 		},
 		{
 			name: "Two-line word diff with unmapped values",
 			args: [`${longPrefix} eta`, `${longPrefix} theta`, { actual: "foo", expected: "bar" }],
-			expect: ` Actual:   "${longPrefix} <bg diff-removed-emph><b>eta</b></bg>"
+			expect: ` Actual:   "${longPrefix} <bg diff-removed-tint><b>eta</b></bg>"
            <dim>"foo" unmapped</dim>
- Expected: "${longPrefix} <bg diff-added-emph><b>theta</b></bg>"
+ Expected: "${longPrefix} <bg diff-added-tint><b>theta</b></bg>"
            <dim>"bar" unmapped</dim>`,
 		},
 		{
 			name: "Inline multiline string diff",
 			args: ["one\ntwo\nthree", "one\nTWO\nthree"],
-			expect: `Got "one\\n<bg diff-removed-emph><b>two</b></bg>\\nthree", expected "one\\n<bg diff-added-emph><b>TWO</b></bg>\\nthree"`,
+			expect: `Got "one\\n<bg diff-removed-tint><b>two</b></bg>\\nthree", expected "one\\n<bg diff-added-tint><b>TWO</b></bg>\\nthree"`,
 		},
 		{
 			name: "Elided array hunks",
@@ -72,15 +72,15 @@ export default {
   <dim>… 5 matching lines …</dim>
   	"line4",
   	"line5",
-<bg diff-removed>- \t"<bg diff-removed-emph><b>X</b></bg>",</bg>
-<bg diff-added>+ \t"<bg diff-added-emph><b>x</b></bg>",</bg>
+<bg diff-removed>- \t"<bg diff-removed-tint><b>X</b></bg>",</bg>
+<bg diff-added>+ \t"<bg diff-added-tint><b>x</b></bg>",</bg>
   	"line7",
   	"line8",
   <dim>… 3 matching lines …</dim>
   	"line12",
   	"line13",
-<bg diff-removed>- \t"<bg diff-removed-emph><b>Y</b></bg>",</bg>
-<bg diff-added>+ \t"<bg diff-added-emph><b>y</b></bg>",</bg>
+<bg diff-removed>- \t"<bg diff-removed-tint><b>Y</b></bg>",</bg>
+<bg diff-added>+ \t"<bg diff-added-tint><b>y</b></bg>",</bg>
   	"line15",
   	"line16",
   ]`,
@@ -100,8 +100,8 @@ export default {
 					args: ["foo\nbar\n", "foo\nbaz\n", { actual: "bar", expected: "yolo" }],
 					expect: ` Actual ↔ Expected:
   foo
-<bg diff-removed>- ba<bg diff-removed-emph><b>r</b></bg></bg>
-<bg diff-added>+ ba<bg diff-added-emph><b>z</b></bg></bg>
+<bg diff-removed>- ba<bg diff-removed-tint><b>r</b></bg></bg>
+<bg diff-added>+ ba<bg diff-added-tint><b>z</b></bg></bg>
  <dim>Actual unmapped:   "bar"</dim>
  <dim>Expected unmapped: "yolo"</dim>`,
 				},
@@ -109,39 +109,39 @@ export default {
 					name: "multiple paired lines",
 					args: ["foo13\nbar42\n", "foo25\nbar47\n"],
 					expect: ` Actual ↔ Expected:
-<bg diff-removed>- foo<bg diff-removed-emph><b>13</b></bg></bg>
-<bg diff-added>+ foo<bg diff-added-emph><b>25</b></bg></bg>
-<bg diff-removed>- bar4<bg diff-removed-emph><b>2</b></bg></bg>
-<bg diff-added>+ bar4<bg diff-added-emph><b>7</b></bg></bg>`,
+<bg diff-removed>- foo<bg diff-removed-tint><b>13</b></bg></bg>
+<bg diff-added>+ foo<bg diff-added-tint><b>25</b></bg></bg>
+<bg diff-removed>- bar4<bg diff-removed-tint><b>2</b></bg></bg>
+<bg diff-added>+ bar4<bg diff-added-tint><b>7</b></bg></bg>`,
 				},
 				{
 					name: "noisy swap collapses via cleanup",
 					args: ["fix: button alignment\n", "fix: button padding\n"],
 					expect: ` Actual ↔ Expected:
-<bg diff-removed>- fix: button <bg diff-removed-emph><b>alignment</b></bg></bg>
-<bg diff-added>+ fix: button <bg diff-added-emph><b>padding</b></bg></bg>`,
+<bg diff-removed>- fix: button <bg diff-removed-tint><b>alignment</b></bg></bg>
+<bg diff-added>+ fix: button <bg diff-added-tint><b>padding</b></bg></bg>`,
 				},
 				{
 					name: "unequal counts stay plain",
 					args: ["foo\nbar\n", "baz\n"],
 					expect: ` Actual ↔ Expected:
-<bg diff-removed>- <bg diff-removed-emph><b>foo</b></bg></bg>
-<bg diff-removed>- <bg diff-removed-emph><b>bar</b></bg></bg>
-<bg diff-added>+ <bg diff-added-emph><b>baz</b></bg></bg>`,
+<bg diff-removed>- <bg diff-removed-tint><b>foo</b></bg></bg>
+<bg diff-removed>- <bg diff-removed-tint><b>bar</b></bg></bg>
+<bg diff-added>+ <bg diff-added-tint><b>baz</b></bg></bg>`,
 				},
 				{
 					name: "added line",
 					args: ["foo\n", "foo\nbar\n"],
 					expect: ` Actual ↔ Expected:
   foo
-<bg diff-added>+ <bg diff-added-emph><b>bar</b></bg></bg>`,
+<bg diff-added>+ <bg diff-added-tint><b>bar</b></bg></bg>`,
 				},
 				{
 					name: "removed line",
 					args: ["foo\nbar\n", "foo\n"],
 					expect: ` Actual ↔ Expected:
   foo
-<bg diff-removed>- <bg diff-removed-emph><b>bar</b></bg></bg>`,
+<bg diff-removed>- <bg diff-removed-tint><b>bar</b></bg></bg>`,
 				},
 			],
 		},

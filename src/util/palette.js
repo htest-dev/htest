@@ -24,15 +24,19 @@ const base = {
 
 const semantic = {
 	pass: base.green,
+	"pass-tint": base.lightgreen,
 	fail: base.red,
+	"fail-tint": base.lightred,
 	skip: "#a0a8b4",
+	"skip-tint": "#c4c9d2",
 	message: base.yellow,
+	"message-tint": base.lightyellow,
 	highlight: base.green,
 	text: base.black,
 	"diff-added": "#2e4b3a",
-	"diff-added-emph": base.lightgreen,
+	"diff-added-tint": base.lightgreen,
 	"diff-removed": "#4b2e38",
-	"diff-removed-emph": base.lightred,
+	"diff-removed-tint": base.lightred,
 	gutter: "#313244",
 };
 

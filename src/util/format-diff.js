@@ -20,8 +20,8 @@ const INLINE_MAX = 40;
 
 /** Per-side chunk/line bg tokens, change-action key, and output label for diff formatting. */
 const sides = {
-	actual: { chunk: "diff-removed-emph", line: "diff-removed", action: "removed", label: " Actual:   " },
-	expected: { chunk: "diff-added-emph", line: "diff-added", action: "added", label: " Expected: " },
+	actual: { chunk: "diff-removed-tint", line: "diff-removed", action: "removed", label: " Actual:   " },
+	expected: { chunk: "diff-added-tint", line: "diff-added", action: "added", label: " Expected: " },
 };
 
 /**

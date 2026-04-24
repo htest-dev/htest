@@ -1,36 +1,43 @@
 import format, { stripFormatting, detectMode } from "../src/util/format-console.js";
 
+// Escape ANSI escape codes so failure output shows them as visible characters.
+// Mirrors previous convention in this file — avoids `map`, which would display
+// unmapped raw values alongside, creating unreadable diffs.
+function escape (str) {
+	return str.replaceAll("\x1b", "\\x1b");
+}
+
 export default {
 	name: "format-console",
-	map: str => str.replaceAll("\x1b", "\\x1b"),
 	tests: [
 		{
 			name: "format()",
 			run (arg) {
-				return format(arg, { ...(this.data ?? {}) });
+				let result = format(arg, { ...(this.data ?? {}) });
+				return typeof result === "string" ? escape(result) : result;
 			},
 			tests: [
 				{
 					name: "Truecolor",
 					data: { mode: "truecolor" },
 					tests: [
-						{ name: "Bold modifier",          arg: "<b>x</b>",                   expect: "\x1b[1mx\x1b[0m" },
-						{ name: "Semantic token",         arg: "<c pass>x</c>",              expect: "\x1b[38;2;166;227;161mx\x1b[0m" },
-						{ name: "Hex literal",            arg: "<c #ff0000>x</c>",           expect: "\x1b[38;2;255;0;0mx\x1b[0m" },
-						{ name: "Background",             arg: "<bg pass>x</bg>",            expect: "\x1b[48;2;166;227;161mx\x1b[0m" },
+						{ name: "Bold modifier",          arg: "<b>x</b>",                   expect: "\\x1b[1mx\\x1b[0m" },
+						{ name: "Semantic token",         arg: "<c pass>x</c>",              expect: "\\x1b[38;2;166;227;161mx\\x1b[0m" },
+						{ name: "Hex literal",            arg: "<c #ff0000>x</c>",           expect: "\\x1b[38;2;255;0;0mx\\x1b[0m" },
+						{ name: "Background",             arg: "<bg pass>x</bg>",            expect: "\\x1b[48;2;166;227;161mx\\x1b[0m" },
 						{ name: "Nested preserves outer", arg: "<c pass><c fail>x</c>y</c>",
-						  expect: "\x1b[38;2;166;227;161m\x1b[38;2;243;139;168mx\x1b[0m\x1b[38;2;166;227;161my\x1b[0m" },
+						  expect: "\\x1b[38;2;166;227;161m\\x1b[38;2;243;139;168mx\\x1b[0m\\x1b[38;2;166;227;161my\\x1b[0m" },
 						{ name: "Diff-style", arg: "<bg gutter> <c diff-added>+ added</c> <c diff-removed>- removed</c></bg>",
-						  expect: "\x1b[48;2;49;50;68m \x1b[38;2;46;75;58m+ added\x1b[0m\x1b[48;2;49;50;68m \x1b[38;2;75;46;56m- removed\x1b[0m\x1b[48;2;49;50;68m\x1b[0m" },
-						{ name: "Unknown color ignored",  arg: "<c nope>x</c>",              expect: "x\x1b[0m" },
+						  expect: "\\x1b[48;2;49;50;68m \\x1b[38;2;46;75;58m+ added\\x1b[0m\\x1b[48;2;49;50;68m \\x1b[38;2;75;46;56m- removed\\x1b[0m\\x1b[48;2;49;50;68m\\x1b[0m" },
+						{ name: "Unknown color ignored",  arg: "<c nope>x</c>",              expect: "x\\x1b[0m" },
 					],
 				},
 				{
 					name: "256",
 					data: { mode: "256" },
 					tests: [
-						{ name: "Semantic token (pass → #a6e3a1 → index 151)", arg: "<c pass>x</c>",    expect: "\x1b[38;5;151mx\x1b[0m" },
-						{ name: "Hex literal red → index 196",                 arg: "<c #ff0000>x</c>", expect: "\x1b[38;5;196mx\x1b[0m" },
+						{ name: "Semantic token (pass → #a6e3a1 → index 151)", arg: "<c pass>x</c>",    expect: "\\x1b[38;5;151mx\\x1b[0m" },
+						{ name: "Hex literal red → index 196",                 arg: "<c #ff0000>x</c>", expect: "\\x1b[38;5;196mx\\x1b[0m" },
 					],
 				},
 				{
@@ -38,7 +45,7 @@ export default {
 					data: { mode: "strip" },
 					tests: [
 						{ name: "Colors stripped, modifiers kept", arg: "<b><c pass>x</c></b>",
-						  expect: "\x1b[1mx\x1b[0m\x1b[1m\x1b[0m" },
+						  expect: "\\x1b[1mx\\x1b[0m\\x1b[1m\\x1b[0m" },
 					],
 				},
 				{

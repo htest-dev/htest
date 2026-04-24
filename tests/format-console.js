@@ -61,6 +61,22 @@ export default {
 							arg: "<c nope>x</c>",
 							expect: "x\\x1b[0m",
 						},
+						{
+							name: "Nested unknown preserves outer",
+							arg: "<c pass><c nope><b>x</b></c></c>",
+							expect:
+								"\\x1b[38;2;74;222;128m\\x1b[1mx\\x1b[0m\\x1b[38;2;74;222;128m\\x1b[0m\\x1b[38;2;74;222;128m\\x1b[0m",
+						},
+						{
+							name: "3-char hex expansion",
+							arg: "<c #f00>x</c>",
+							expect: "\\x1b[38;2;255;0;0mx\\x1b[0m",
+						},
+						{
+							name: "Empty string",
+							arg: "",
+							expect: "",
+						},
 					],
 				},
 				{
@@ -152,6 +168,7 @@ export default {
 					arg: { FORCE_COLOR: "3" },
 					expect: "truecolor",
 				},
+				{ name: "FORCE_COLOR=2", arg: { FORCE_COLOR: "2" }, expect: "256" },
 				{ name: "FORCE_COLOR=0", arg: { FORCE_COLOR: "0" }, expect: "strip" },
 				{
 					name: "COLORTERM",

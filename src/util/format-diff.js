@@ -32,6 +32,17 @@ const sides = {
 	expected: { color: "green", action: "added", label: " Expected: " },
 };
 
+/**
+ * Format a failure message comparing `actual` to `expected`, choosing a layout
+ * based on value shape: inline char-diff for short values, two-line word-diff
+ * for long single-line text, unified `-`/`+` hunks for multi-line stringified
+ * values, and plain side-by-side for type mismatches or stringify collisions.
+ * @param {*} actual - Value produced by the test.
+ * @param {*} expected - Value the test expected.
+ * @param {{ actual?: *, expected?: * }} [unmapped] - Pre-`map` values to annotate
+ *   alongside the diff; each side is optional and only rendered when present.
+ * @returns {string} Formatted message with `format-console` tags.
+ */
 export function formatDiff (actual, expected, unmapped = {}) {
 	let actualType = getType(actual);
 	let expectedType = getType(expected);
@@ -217,8 +228,9 @@ function colorize (changes, side, prefix) {
  * lines highlights coincidental character overlaps as "common" and misleads.
  */
 function formatBlock (removed, added) {
+	let pairs = null;
 	if (removed.length > 0 && removed.length === added.length) {
-		var pairs = [];
+		pairs = [];
 
 		for (let i = 0; i < removed.length; i++) {
 			let removedText = removed[i].text;

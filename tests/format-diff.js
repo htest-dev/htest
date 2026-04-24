@@ -141,5 +141,41 @@ export default {
   	"line9",
   <dim>… 8 matching lines …</dim>`,
 		},
+		{
+			name: "Multi-line diff",
+			// Wrap inputs so stringify() emits the raw text (with real `\n`)
+			// and lineDiff triggers without hitting the array multi-line threshold.
+			beforeEach () {
+				let [actual, expected] = this.args;
+				this.args[0] = { toJSON: () => actual };
+				this.args[1] = { toJSON: () => expected };
+			},
+			tests: [
+				{
+					name: "with unmapped values",
+					args: ["foo\nbar\n", "foo\nbaz\n", { actual: "raw_a", expected: "raw_b" }],
+					expect: ` Actual ↔ Expected:
+  foo
+<bg lightblack>- ba<bg red><b>r</b></bg></bg>
+<bg lightblack>+ ba<bg green><b>z</b></bg></bg>
+ <dim>Actual unmapped:   "raw_a"</dim>
+ <dim>Expected unmapped: "raw_b"</dim>`,
+				},
+				{
+					name: "added line",
+					args: ["foo\n", "foo\nbar\n"],
+					expect: ` Actual ↔ Expected:
+  foo
+<bg lightblack>+ <bg green><b>bar</b></bg></bg>`,
+				},
+				{
+					name: "removed line",
+					args: ["foo\nbar\n", "foo\n"],
+					expect: ` Actual ↔ Expected:
+  foo
+<bg lightblack>- <bg red><b>bar</b></bg></bg>`,
+				},
+			],
+		},
 	],
 };

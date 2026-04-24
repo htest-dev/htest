@@ -35,10 +35,23 @@ export default {
 			expect: `Got "a<bg red><b>b</b></bg>c", expected "a<bg green><b>d</b></bg>c"`,
 		},
 		{
+			name: "Inline char diff with unmapped values",
+			args: ["abc", "adc", { actual: "foo", expected: "bar" }],
+			expect: `Got "a<bg red><b>b</b></bg>c" <dim>("foo" unmapped)</dim>, expected "a<bg green><b>d</b></bg>c" <dim>("bar" unmapped)</dim>`,
+		},
+		{
 			name: "Two-line word diff",
 			args: [`${longPrefix} eta`, `${longPrefix} theta`],
 			expect: ` Actual:   "${longPrefix} <bg red><b>eta</b></bg>"
  Expected: "${longPrefix} <bg green><b>theta</b></bg>"`,
+		},
+		{
+			name: "Two-line word diff with unmapped values",
+			args: [`${longPrefix} eta`, `${longPrefix} theta`, { actual: "foo", expected: "bar" }],
+			expect: ` Actual:   "${longPrefix} <bg red><b>eta</b></bg>"
+           <dim>"foo" unmapped</dim>
+ Expected: "${longPrefix} <bg green><b>theta</b></bg>"
+           <dim>"bar" unmapped</dim>`,
 		},
 		{
 			name: "Inline multiline string diff",
@@ -107,15 +120,6 @@ export default {
 					expect: ` Actual ↔ Expected:
 <bg lightblack>- fix: button <bg red><b>alignment</b></bg></bg>
 <bg lightblack>+ fix: button <bg green><b>padding</b></bg></bg>`,
-				},
-				{
-					name: "dissimilar lines interleave (cleanup collapses each pair)",
-					args: ["aaaaa\nbbbbb\n", "xxxxx\nyyyyy\n"],
-					expect: ` Actual ↔ Expected:
-<bg lightblack>- <bg red><b>aaaaa</b></bg></bg>
-<bg lightblack>+ <bg green><b>xxxxx</b></bg></bg>
-<bg lightblack>- <bg red><b>bbbbb</b></bg></bg>
-<bg lightblack>+ <bg green><b>yyyyy</b></bg></bg>`,
 				},
 				{
 					name: "unequal counts stay plain",

@@ -15,16 +15,19 @@ const modifiers = {
 	dim: { ansi: "\x1b[2m", css: "opacity: 0.6" },
 };
 
-// Matches opening/closing tags. Color value allows letters, digits, dash, hash.
 const tagRegex = /<\/?(b|i|dim|c|bg)(?:\s+([\w#-]+))?\s*>/gi;
 
 /**
- * Detects the appropriate ANSI mode from an env-like object.
- * Pure function — takes env as argument for testability.
- * @param {Record<string, string | undefined>} [env=process.env]
+ * Detect ANSI mode from an env-like object. Browser falls back to truecolor (CSS backend).
+ * Pure — takes env as argument for testability; default path is cached in `detectedMode`.
+ * @param {Record<string, string | undefined> | null} [env]
  * @returns {"truecolor" | "256" | "strip"}
  */
-function detectMode (env = process?.env ?? {}) {
+function detectMode (env = IS_NODEJS ? process.env : null) {
+	if (!env) {
+		return "truecolor";
+	}
+
 	let ret = "256"; // env.FORCE_COLOR === "2" || env.FORCE_COLOR === "1" || no env;
 
 	if (env.NO_COLOR || env.FORCE_COLOR === "0") {
@@ -42,7 +45,7 @@ function detectMode (env = process?.env ?? {}) {
 	return ret;
 }
 
-const detectedMode = IS_NODEJS ? detectMode() : "truecolor";
+const detectedMode = detectMode();
 
 /**
  * Resolve a color name to a hex value.
@@ -78,7 +81,7 @@ function ansiTruecolor (hex, { bg } = {}) {
 	return `\x1b[${bg ? 48 : 38};2;${r};${g};${b}m`;
 }
 
-// 256-color cube levels
+// Reference points of the xterm 6×6×6 color cube (indices 16–231).
 const cubeLevels = [0, 95, 135, 175, 215, 255];
 
 function quantize (value) {
@@ -127,8 +130,8 @@ function tokenize (str) {
 function emitAnsi (tokens, mode) {
 	let output = "";
 	let activeModifiers = new Set();
-	let foregroundStack = [];
-	let backgroundStack = [];
+	let colorStack = [];
+	let bgStack = [];
 
 	let emitColor =
 		mode === "truecolor" ? ansiTruecolor : mode === "256" ? ansi256 : () => "";
@@ -138,13 +141,13 @@ function emitAnsi (tokens, mode) {
 		for (let modifier of activeModifiers) {
 			output += modifiers[modifier].ansi;
 		}
-		let foreground = foregroundStack.findLast(hex => hex);
-		if (foreground) {
-			output += emitColor(foreground);
+		let color = colorStack.findLast(Boolean);
+		if (color) {
+			output += emitColor(color);
 		}
-		let background = backgroundStack.findLast(hex => hex);
-		if (background) {
-			output += emitColor(background, { bg: true });
+		let bg = bgStack.findLast(Boolean);
+		if (bg) {
+			output += emitColor(bg, { bg: true });
 		}
 	};
 
@@ -153,36 +156,33 @@ function emitAnsi (tokens, mode) {
 			output += token.value;
 			continue;
 		}
+
+		let isBg = token.tag === "bg";
+		let isColor = token.tag === "c" || isBg;
+		let stack = isBg ? bgStack : colorStack;
+
 		if (token.type === "open") {
-			if (token.tag === "c") {
+			if (isColor) {
 				let hex = resolveColor(token.value);
-				foregroundStack.push(hex);
+				// Push even when null so close's pop stays balanced.
+				stack.push(hex);
 				if (hex) {
-					output += emitColor(hex);
+					output += emitColor(hex, { bg: isBg });
 				}
 			}
-			else if (token.tag === "bg") {
-				let hex = resolveColor(token.value);
-				backgroundStack.push(hex);
-				if (hex) {
-					output += emitColor(hex, { bg: true });
-				}
-			}
-			else if (modifiers[token.tag]) {
+			else {
 				activeModifiers.add(token.tag);
 				output += modifiers[token.tag].ansi;
 			}
 		}
 		else {
-			if (token.tag === "c") {
-				foregroundStack.pop();
-			}
-			else if (token.tag === "bg") {
-				backgroundStack.pop();
+			if (isColor) {
+				stack.pop();
 			}
 			else {
 				activeModifiers.delete(token.tag);
 			}
+			// ANSI has no "close this color" code, so reset and replay remaining state.
 			replay();
 		}
 	}
@@ -193,21 +193,21 @@ function emitCss (tokens) {
 	let text = "";
 	let styles = [];
 	let activeModifiers = new Set();
-	let foregroundStack = [];
-	let backgroundStack = [];
+	let colorStack = [];
+	let bgStack = [];
 
 	let pushStyle = () => {
 		let parts = [];
 		for (let modifier of activeModifiers) {
 			parts.push(modifiers[modifier].css);
 		}
-		let foreground = foregroundStack.findLast(hex => hex);
-		if (foreground) {
-			parts.push(`color: ${foreground}`);
+		let color = colorStack.findLast(Boolean);
+		if (color) {
+			parts.push(`color: ${color}`);
 		}
-		let background = backgroundStack.findLast(hex => hex);
-		if (background) {
-			parts.push(`background: ${background}`);
+		let bg = bgStack.findLast(Boolean);
+		if (bg) {
+			parts.push(`background: ${bg}`);
 		}
 		text += "%c";
 		styles.push(parts.join("; "));
@@ -218,34 +218,27 @@ function emitCss (tokens) {
 			text += token.value;
 			continue;
 		}
-		if (token.type === "open") {
-			if (token.tag === "c") {
-				let hex = resolveColor(token.value);
-				foregroundStack.push(hex);
-				pushStyle();
-			}
-			else if (token.tag === "bg") {
-				let hex = resolveColor(token.value);
-				backgroundStack.push(hex);
-				pushStyle();
-			}
-			else if (modifiers[token.tag]) {
-				activeModifiers.add(token.tag);
-				pushStyle();
-			}
-		}
-		else {
-			if (token.tag === "c") {
-				foregroundStack.pop();
-			}
-			else if (token.tag === "bg") {
-				backgroundStack.pop();
+
+		let isBg = token.tag === "bg";
+		let isColor = token.tag === "c" || isBg;
+		let isOpen = token.type === "open";
+
+		if (isColor) {
+			let stack = isBg ? bgStack : colorStack;
+			if (isOpen) {
+				stack.push(resolveColor(token.value));
 			}
 			else {
-				activeModifiers.delete(token.tag);
+				stack.pop();
 			}
-			pushStyle();
 		}
+		else if (isOpen) {
+			activeModifiers.add(token.tag);
+		}
+		else {
+			activeModifiers.delete(token.tag);
+		}
+		pushStyle();
 	}
 
 	return [text, ...styles];
@@ -261,10 +254,7 @@ export default function format (
 	str,
 	{ css = !IS_NODEJS, mode = detectedMode } = {},
 ) {
-	if (!str) {
-		return css ? ["", ""] : str;
-	}
-	let tokens = tokenize(String(str));
+	let tokens = tokenize(String(str ?? ""));
 	return css ? emitCss(tokens) : emitAnsi(tokens, mode);
 }
 

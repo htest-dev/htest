@@ -1,5 +1,5 @@
 import { IS_NODEJS, getType, pluralize, stringify } from "../util.js";
-import { stripFormatting } from "../format-console.js";
+import { stripFormatting } from "./format-console.js";
 
 // Dual Node/browser import. Kept version in the CDN URL in sync with package.json.
 // `diffWordsWithSpace` keeps whitespace as part of token boundaries so the
@@ -18,10 +18,10 @@ const CONTEXT = 2;
 /** Longer single-line text switches to two-line word-diff layout. */
 const INLINE_MAX = 40;
 
-/** Per-side color, change-action key, and output label for diff formatting. */
+/** Per-side chunk/line bg tokens, change-action key, and output label for diff formatting. */
 const sides = {
-	actual: { color: "red", action: "removed", label: " Actual:   " },
-	expected: { color: "green", action: "added", label: " Expected: " },
+	actual: { chunk: "diff-removed-emph", line: "diff-removed", action: "removed", label: " Actual:   " },
+	expected: { chunk: "diff-added-emph", line: "diff-added", action: "added", label: " Expected: " },
 };
 
 /**
@@ -246,16 +246,16 @@ function lineDiff (actualString, expectedString, unmapped) {
 }
 
 /**
- * Format one side of a change array. Every changed run gets `<bg side-color><b>`
+ * Format one side of a change array. Every changed run gets `<bg {chunk}><b>`
  * so all diffs — whitespace, token, or char — carry the same visual primitive.
  *
  * Without `prefix`: returns mixed common/changed text; caller decides line framing.
- * With `prefix`: wraps the whole line in neutral `<bg lightblack>` with `prefix`
- * in front; chunk bgs inside stack over the neutral line bg so changed chars
- * pop while the rest of the line keeps a faint "this line changed" tint.
+ * With `prefix`: wraps the whole line in `<bg {line}>` with `prefix` in front;
+ * chunk bgs inside stack over the line bg so changed chars pop while the rest
+ * of the line keeps a faint "this line changed" tint.
  */
 function colorize (changes, side, prefix) {
-	let { color, action } = sides[side];
+	let { chunk, line, action } = sides[side];
 	let ret = "";
 
 	for (let change of changes) {
@@ -264,14 +264,14 @@ function colorize (changes, side, prefix) {
 		}
 
 		if (change[action]) {
-			ret += `<bg ${ color }><b>${ change.value }</b></bg>`;
+			ret += `<bg ${ chunk }><b>${ change.value }</b></bg>`;
 		}
 		else {
 			ret += change.value;
 		}
 	}
 
-	return prefix ? `<bg lightblack>${ prefix } ${ ret }</bg>` : ret;
+	return prefix ? `<bg ${ line }>${ prefix } ${ ret }</bg>` : ret;
 }
 
 /**

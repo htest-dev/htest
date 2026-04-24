@@ -6,7 +6,7 @@
 const base = {
 	black:        "#1e1e2e",
 	red:          "#f38ba8",
-	green:        "#7ee787",
+	green:        "#4ade80",
 	yellow:       "#f9e2af",
 	blue:         "#89b4fa",
 	magenta:      "#cba6f7",
@@ -25,10 +25,10 @@ const base = {
 const semantic = {
 	pass:           base.green,
 	fail:           base.red,
-	skip:           "#7d8590",
+	skip:           "#a0a8b4",
 	message:        base.yellow,
 	highlight:      base.green,
-	text:           base.lightwhite,
+	text:           base.black,
 	"diff-added":   "#2e4b3a",
 	"diff-removed": "#4b2e38",
 	gutter:         "#313244",

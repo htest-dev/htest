@@ -60,7 +60,7 @@ function getTree (msg, i) {
 
 		let icon = collapsed ? icons.collapsed : icons.expanded;
 		if (highlighted) {
-			icon = `<c green><b>${ collapsed ? icons.collapsedHighlighted : icons.expandedHighlighted }</b></c>`;
+			icon = `<c highlight><b>${ collapsed ? icons.collapsedHighlighted : icons.expandedHighlighted }</b></c>`;
 			msg = `<b>${ msg }</b>`;
 		}
 		msg = icon + " " + msg;

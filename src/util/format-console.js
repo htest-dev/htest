@@ -10,14 +10,14 @@ import { IS_NODEJS } from "../util.js";
 import palette from "./palette.js";
 
 const modifiers = {
-	b:   "\x1b[1m",
-	i:   "\x1b[3m",
+	b: "\x1b[1m",
+	i: "\x1b[3m",
 	dim: "\x1b[2m",
 };
 
 const cssModifiers = {
-	b:   "font-weight:bold",
-	i:   "font-style:italic",
+	b: "font-weight:bold",
+	i: "font-style:italic",
 	dim: "opacity:0.6",
 };
 
@@ -30,7 +30,7 @@ const tagRegex = /<\/?(b|i|dim|c|bg)(?:\s+([\w#-]+))?\s*>/gi;
  * @param {Record<string, string | undefined>} [env=process.env]
  * @returns {"truecolor" | "256" | "strip"}
  */
-export function detectMode (env = (typeof process !== "undefined" ? process.env : {})) {
+export function detectMode (env = process?.env ?? {}) {
 	if (env.NO_COLOR) {
 		return "strip";
 	}
@@ -75,7 +75,10 @@ function resolveColor (name) {
 function parseHex (hex) {
 	hex = hex.replace("#", "");
 	if (hex.length === 3) {
-		hex = hex.split("").map(c => c + c).join("");
+		hex = hex
+			.split("")
+			.map(c => c + c)
+			.join("");
 	}
 	return {
 		r: parseInt(hex.slice(0, 2), 16),
@@ -86,7 +89,7 @@ function parseHex (hex) {
 
 function ansiTruecolor (hex, { bg } = {}) {
 	let { r, g, b } = parseHex(hex);
-	return `\x1b[${ bg ? 48 : 38 };2;${r};${g};${b}m`;
+	return `\x1b[${bg ? 48 : 38};2;${r};${g};${b}m`;
 }
 
 // 256-color cube levels
@@ -108,7 +111,7 @@ function quantize (value) {
 function ansi256 (hex, { bg } = {}) {
 	let { r, g, b } = parseHex(hex);
 	let index = 16 + 36 * quantize(r) + 6 * quantize(g) + quantize(b);
-	return `\x1b[${ bg ? 48 : 38 };5;${index}m`;
+	return `\x1b[${bg ? 48 : 38};5;${index}m`;
 }
 
 /**
@@ -141,9 +144,8 @@ function emitAnsi (tokens, mode) {
 	let foregroundStack = [];
 	let backgroundStack = [];
 
-	let emitColor = mode === "truecolor" ? ansiTruecolor
-		: mode === "256" ? ansi256
-			: () => "";
+	let emitColor =
+		mode === "truecolor" ? ansiTruecolor : mode === "256" ? ansi256 : () => "";
 
 	let replay = () => {
 		output += "\x1b[0m";
@@ -269,7 +271,10 @@ function emitCss (tokens) {
  * @param {{ css?: boolean, mode?: "truecolor" | "256" | "strip" }} [options]
  * @returns {string | [string, ...string[]]}
  */
-export default function format (str, { css = !IS_NODEJS, mode = detectedMode } = {}) {
+export default function format (
+	str,
+	{ css = !IS_NODEJS, mode = detectedMode } = {},
+) {
 	if (!str) {
 		return css ? ["", ""] : str;
 	}

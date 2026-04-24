@@ -1,9 +1,9 @@
 /**
  * Format console text with HTML-like tags.
  *
- * Two backends:
- *   - ANSI (default on Node): truecolor / 256 / strip
- *   - CSS (default on browser): returns [text, ...styles] for console.log spread
+ * Modes:
+ *   - "truecolor" / "256" / "strip" — ANSI backend (default on Node).
+ *   - "css" — returns [text, ...styles] for console.log spread (default on browser).
  */
 
 import { IS_NODEJS } from "../util.js";
@@ -20,14 +20,14 @@ const modifiers = {
 const tagRegex = /<\/?(b|i|dim|c|bg)(?:\s+([\w#-]+))?\s*>/gi;
 
 /**
- * Detect ANSI mode from an env-like object. Browser falls back to truecolor (CSS backend).
+ * Detect format mode from an env-like object. Browser falls back to "css" (CSS backend).
  * Pure — takes env as argument for testability; default path is cached in `detectedMode`.
  * @param {Record<string, string | undefined> | null} [env]
- * @returns {"truecolor" | "256" | "strip"}
+ * @returns {"truecolor" | "256" | "strip" | "css"}
  */
 function detectMode (env = IS_NODEJS ? process.env : null) {
 	if (!env) {
-		return "truecolor";
+		return "css";
 	}
 
 	let ret = "256"; // env.FORCE_COLOR === "2" || env.FORCE_COLOR === "1" || no env;
@@ -247,17 +247,14 @@ function emitCss (tokens) {
 }
 
 /**
- * Format a tagged string for the target backend.
+ * Format a tagged string for the target mode.
  * @param {string} str
- * @param {{ css?: boolean, mode?: "truecolor" | "256" | "strip" }} [options]
+ * @param {"truecolor" | "256" | "strip" | "css"} [mode]
  * @returns {string | [string, ...string[]]}
  */
-export default function format (
-	str,
-	{ css = !IS_NODEJS, mode = detectedMode } = {},
-) {
+export default function format (str, mode = detectedMode) {
 	let tokens = tokenize(String(str ?? ""));
-	return css ? emitCss(tokens) : emitAnsi(tokens, mode);
+	return mode === "css" ? emitCss(tokens) : emitAnsi(tokens, mode);
 }
 
 export function stripFormatting (str) {

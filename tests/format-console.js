@@ -13,7 +13,7 @@ export default {
 		{
 			name: "format()",
 			run (arg) {
-				let result = format(arg, { ...(this.data ?? {}) });
+				let result = format(arg, this.data?.mode);
 				return typeof result === "string" ? escape(result) : result;
 			},
 			tests: [
@@ -115,7 +115,7 @@ export default {
 				},
 				{
 					name: "CSS",
-					data: { css: true },
+					data: { mode: "css" },
 					tests: [
 						{
 							name: "Single foreground",

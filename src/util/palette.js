@@ -1,6 +1,6 @@
 /**
  * Color palette: base 16 ANSI-named colors + semantic tokens.
- * Dark-optimized. All values as hex literals (no runtime conversion).
+ * All values as hex literals (no runtime conversion).
  */
 
 const base = {

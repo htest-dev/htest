@@ -29,9 +29,11 @@ const semantic = {
 	message:        base.yellow,
 	highlight:      base.green,
 	text:           base.black,
-	"diff-added":   "#2e4b3a",
-	"diff-removed": "#4b2e38",
-	gutter:         "#313244",
+	"diff-added":        "#2e4b3a",
+	"diff-added-emph":   base.lightgreen,
+	"diff-removed":      "#4b2e38",
+	"diff-removed-emph": base.lightred,
+	gutter:              "#313244",
 };
 
 export default { ...base, ...semantic };

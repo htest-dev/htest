@@ -358,8 +358,8 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getResult (o) {
-		let color = this.pass ? "pass" : this.skipped ? "skip" : "fail";
 		let label = this.pass ? "PASS" : this.skipped ? "SKIP" : "FAIL";
+		let color = label.toLowerCase();
 		let ret = [
 			`<b><bg ${color}><c text> ${ label } </c></bg></b>`,
 			`<c ${color}-tint>${this.name ?? "(Anonymous)"}</c>`,

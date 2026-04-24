@@ -83,7 +83,7 @@ export default function render (test) {
 			}
 			else if (!target.pass) {
 				cell.classList.add("details");
-				cell.onclick = () => console.log(target.details.map(format).join("\n"));
+				cell.onclick = () => console.log(...format(target.details.join("\n")));
 			}
 			tr.dataset.time = formatDuration(target.timeTaken);
 		}

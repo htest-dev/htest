@@ -6,7 +6,7 @@
 const base = {
 	black:        "#1e1e2e",
 	red:          "#f38ba8",
-	green:        "#a6e3a1",
+	green:        "#7ee787",
 	yellow:       "#f9e2af",
 	blue:         "#89b4fa",
 	magenta:      "#cba6f7",

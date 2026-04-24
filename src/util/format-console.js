@@ -9,7 +9,9 @@
 import { IS_NODEJS } from "../util.js";
 import palette from "./palette.js";
 
+// `reset` is internal-only — not matched by tagRegex, used by emitAnsi's replay.
 const modifiers = {
+	reset: { ansi: "\x1b[0m" },
 	b: { ansi: "\x1b[1m", css: "font-weight: bold" },
 	i: { ansi: "\x1b[3m", css: "font-style: italic" },
 	dim: { ansi: "\x1b[2m", css: "opacity: 0.6" },
@@ -137,7 +139,7 @@ function emitAnsi (tokens, mode) {
 		mode === "truecolor" ? ansiTruecolor : mode === "256" ? ansi256 : () => "";
 
 	let replay = () => {
-		output += "\x1b[0m";
+		output += modifiers.reset.ansi;
 		for (let modifier of activeModifiers) {
 			output += modifiers[modifier].ansi;
 		}

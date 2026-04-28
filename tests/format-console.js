@@ -6,8 +6,8 @@ import format, {
 import palette from "../src/util/palette.js";
 
 // Escape ANSI escape codes so failure output shows them as visible characters.
-// Mirrors previous convention in this file — avoids `map`, which would display
-// unmapped raw values alongside, creating unreadable diffs.
+// We don't want to use map because it will output unmapped values on fail as
+// well, causing a mess in this very special case.
 function escape (str) {
 	return str.replaceAll("\x1b", "\\x1b");
 }

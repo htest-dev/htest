@@ -78,7 +78,7 @@ function parseHex (hex) {
 	};
 }
 
-function ansiTruecolor (hex, { bg } = {}) {
+export function ansiTruecolor (hex, { bg } = {}) {
 	let { r, g, b } = parseHex(hex);
 	return `\x1b[${bg ? 48 : 38};2;${r};${g};${b}m`;
 }
@@ -99,7 +99,7 @@ function quantize (value) {
 	return best;
 }
 
-function ansi256 (hex, { bg } = {}) {
+export function ansi256 (hex, { bg } = {}) {
 	let { r, g, b } = parseHex(hex);
 	let index = 16 + 36 * quantize(r) + 6 * quantize(g) + quantize(b);
 	return `\x1b[${bg ? 48 : 38};5;${index}m`;

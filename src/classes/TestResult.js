@@ -1,6 +1,6 @@
 import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
-import { stripFormatting } from "../format-console.js";
+import { stripFormatting } from "../util/format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
 import { formatDiff } from "../util/format-diff.js";
 
@@ -358,11 +358,11 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getResult (o) {
-		let color = this.pass ? "green" : this.skipped ? "yellow" : "red";
 		let label = this.pass ? "PASS" : this.skipped ? "SKIP" : "FAIL";
+		let color = label.toLowerCase();
 		let ret = [
-			`<b><bg ${color}><c white> ${ label } </c></bg></b>`,
-			`<c light${color}>${this.name ?? "(Anonymous)"}</c>`,
+			`<b><bg ${color}><c text> ${ label } </c></bg></b>`,
+			`<c ${color}-tint>${this.name ?? "(Anonymous)"}</c>`,
 		].join(" ");
 
 		if (this.messages?.length > 0) {
@@ -392,11 +392,11 @@ ${ this.error.stack }`);
 		];
 
 		if (stats.pass > 0) {
-			ret.push(`<c green><b>${ stats.pass }</b>/${ stats.total } PASS</c>`);
+			ret.push(`<c pass><b>${ stats.pass }</b>/${ stats.total } PASS</c>`);
 		}
 
 		if (stats.fail > 0) {
-			ret.push(`<c red><b>${ stats.fail }</b>/${ stats.total } FAIL</c>`);
+			ret.push(`<c fail><b>${ stats.fail }</b>/${ stats.total } FAIL</c>`);
 		}
 
 		if (stats.pending > 0) {
@@ -431,7 +431,7 @@ ${ this.error.stack }`);
 	 * @returns {string}
 	 */
 	getMessages (o = {}) {
-		let ret = new String("<c yellow><b><i>(Messages)</i></b></c>");
+		let ret = new String("<c message><b><i>(Messages)</i></b></c>");
 		ret.children = this.messages.map(m => `<dim>(${ m.method })</dim> ${ m.args.map(a => stringify(a)).join(" ") }`);
 
 		return o?.format === "rich" ? ret : stripFormatting(ret);

@@ -7,7 +7,7 @@ import TestResult from "./classes/TestResult.js";
 import RefTest from "https://html.htest.dev/src/classes/RefTest.js";
 import { create, output } from "https://html.htest.dev/src/util.js";
 import { formatDuration } from "./util.js";
-import format from "./format-console.js";
+import format from "./util/format-console.js";
 
 export default function render (test) {
 	let root = new Test(test);
@@ -83,7 +83,7 @@ export default function render (test) {
 			}
 			else if (!target.pass) {
 				cell.classList.add("details");
-				cell.onclick = () => console.log(target.details.map(format).join("\n"));
+				cell.onclick = () => console.log(...format(target.details.join("\n")));
 			}
 			tr.dataset.time = formatDuration(target.timeTaken);
 		}

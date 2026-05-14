@@ -7,7 +7,7 @@ import { stripFormatting } from "../format-console.js";
 const { diffChars, diffLines, diffWordsWithSpace: diffWords } = await import(
 	IS_NODEJS
 		? "diff"
-		: "https://cdn.jsdelivr.net/npm/diff@8.0.4/lib/index.es6.js"
+		: "https://cdn.jsdelivr.net/npm/diff@8.0.4/libesm/index.js"
 );
 
 /** @typedef {{value: string, added?: boolean, removed?: boolean}} Change */

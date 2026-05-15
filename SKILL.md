@@ -37,7 +37,7 @@ export default {
 
 - **What abstraction makes the tests easier to understand for humans?** If a rule below would impose an abstraction that makes a test harder to read, the rule is wrong for that test. Declarativeness exists to remove repetitive noise — not to force inherently imperative code into a data shape.
 
-- **Write the tests first; scaffold around them.** Express each test as data (`name`, `arg`, `expect`) in whatever shape gives you maximum signal-to-noise on the intent. Write `run()`, `beforeEach()`, and other scaffolding *at the end*, derived from what the tests need. Starting with `run()` first shapes the tests around what `run()` can express, instead of letting the tests express the intent.
+- **Write the tests first; scaffold around them.** Express each test as data (`name`, `arg`, `expect`) in whatever shape gives you maximum signal-to-noise on the intent. **DRY isn't the endgame — it often correlates with clarity, but not always.** Write `run()`, `beforeEach()`, and other scaffolding *at the end*, derived from what the tests need. **When deciding whether to factor `run()` out or leave it per-test, write the test both ways and pick the version that expresses intent better.**
 
 1. **`arg` + `expect` is the default *for value transforms*.** When a test naturally fits "given input, expect output," express it that way. **Don't bend stateful or imperative tests into this shape.** Lifting `run` to a shared level pays off only when the abstraction *simplifies*. If it would require encoding sequential side effects as `arg` data — an array of functions whose job is to mutate state — leave `run` per-test: the imperative content stays where the reader expects it. When several tests genuinely share execution, group *those* under a focused `run` rather than forcing the whole file under one root-level shape.
 2. **Structure mirrors API** — nest test groups to match your module's shape. One export = one top-level group. The hierarchy should let you locate any test by navigating the API.
@@ -49,12 +49,12 @@ export default {
 
 | Mistake                                               | Fix                                                                                          |
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Custom `run` in every test with identical bodies      | Extract shared `run` at parent. **But** if each test's `run` has unique imperative content (writes, sequences), per-test is correct — don't impose uniformity. |
+| Custom `run` in every test with minor differences     | Extract shared `run` at parent and push the variations into `arg`/`args`. **But** if each test's `run` has unique imperative content (writes, sequences), per-test is correct — don't impose uniformity. |
 | `expect: true` with boolean logic in `run`            | Usually a smell — return the actual value. **Exception:** when the test name is a yes/no question or assertion (e.g. "Inputs are sorted", "Cache hit on repeat read"), the boolean is the literal answer to the name and `expect: true` is fine. |
 | Reading values via `this.arg.X` / `this.args[0]` inside `run` | The parameter list IS where `arg`/`args` arrive. Name and unpack them however fits the case: `run ({ x })`, `run ([first, ...rest])`, `run (args) { let first = args[0]; }`, etc. Reserve `this` for `this.data` (lifecycle state) and instance props. |
 | Inline `//` comment explaining what the test verifies | Use the `description` field — that's its home as structured metadata next to the test. **Keep it brief** (a sentence, maybe two): add what the `name` can't carry — an issue reference, a subtle invariant, a non-obvious edge case. Don't write a paragraph and don't restate the name in prose. Reserve comments for short notes about mechanics. |
 | Setup in `beforeAll` but used in `arg` expressions    | Move to module top level — `arg`/`expect` evaluate at import time, before hooks              |
-| `new Instance()` in both `arg` and `expect`           | Share one instance variable                                                                  |
+| `new Instance()` in both `arg` and `expect`           | Share one instance variable — default check uses `===` at leaves, so two structurally-equal instances fail. See [Reference Equality for Instances](#reference-equality-for-instances). |
 | `data` for values only used in `run`                  | Inline the value directly                                                                    |
 | `args: [1, 2, 3]` when function expects one array     | Use `arg: [1, 2, 3]` — `args` spreads elements as separate arguments                         |
 

@@ -1,6 +1,7 @@
 export default {
 	name: "Failing tests",
 	description: "These tests are designed to fail and should not break the test runner",
+	expect: 42,
 	tests: [
 		{
 			name: "map() fails",
@@ -15,7 +16,6 @@ export default {
 			map: arg => undefined,
 			check: (actual, expected) => actual.length < expected.length,
 			arg: 42,
-			expect: 42,
 		},
 	],
 };

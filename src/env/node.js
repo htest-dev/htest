@@ -10,7 +10,7 @@ import { AsciiTree } from "oo-ascii-tree";
 import { globSync } from "glob";
 
 // Internal modules
-import format from "../format-console.js";
+import format, { stripFormatting } from "../format-console.js";
 import { getType } from "../util.js";
 
 /**
@@ -137,7 +137,7 @@ export default {
 			if (root.stats.pending === 0) {
 				let messages = root.toString(options);
 				let tree = getTree(messages).toString();
-				tree = format(tree);
+				tree = process.stdout.isTTY ? format(tree) : stripFormatting(tree);
 
 				console[root.stats.fail > 0 ? "error" : "log"](tree);
 

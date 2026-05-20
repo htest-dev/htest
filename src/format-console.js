@@ -3,18 +3,22 @@
  */
 // https://stackoverflow.com/a/41407246/90826
 let modifiers = {
-	reset: "\x1b[0m",
-	b:     "\x1b[1m",
-	dim:   "\x1b[2m",
-	i:     "\x1b[3m",
+	reset: { ansi: "\x1b[0m", css: "" },
+	b:     { ansi: "\x1b[1m", css: "font-weight: bold" },
+	dim:   { ansi: "\x1b[2m", css: "opacity: 0.6" },
+	i:     { ansi: "\x1b[3m", css: "font-style: italic" },
 };
 
 let hues = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
 
-let colors = Object.fromEntries(hues.map((hue, i) => [hue, `\x1b[3${i}m`]));
-let bgColors = Object.fromEntries(hues.map((hue, i) => [hue, `\x1b[4${i}m`]));
+let cssLightOverrides = {
+	black: "gray",
+	red: "lightcoral",
+	magenta: "violet",
+	white: "whitesmoke",
+};
 
-function getColorCode (hue, {light, bg} = {}) {
+function getColor (hue, {light, bg, mode} = {}) {
 	if (!hue) {
 		return "";
 	}
@@ -28,11 +32,16 @@ function getColorCode (hue, {light, bg} = {}) {
 		return "";
 	}
 
+	if (mode === "css") {
+		let cssHue = light ? (cssLightOverrides[hue] ?? "light" + hue) : hue;
+		return `${ bg ? "background" : "color" }: ${ cssHue }`;
+	}
+
 	if (light) {
 		return `\x1b[${ bg ? 10 : 9 }${i}m`;
 	}
 
-	return `\x1b[${ light ? "1;" : ""}${ bg ? 4 : 3 }${i}m`;
+	return `\x1b[${ bg ? 4 : 3 }${i}m`;
 }
 
 let tags = [
@@ -42,9 +51,28 @@ let tags = [
 ];
 let tagRegex = RegExp(tags.flat().join("|"), "gi");
 
+function getCSS (active, colorStack, bgStack, mode) {
+	let parts = [];
+	for (let mod of active) {
+		parts.push(modifiers[mod].css);
+	}
+	let fg = getColor(colorStack.at(-1), {mode});
+	if (fg) {
+		parts.push(fg);
+	}
+	let bg = getColor(bgStack.at(-1), {bg: true, mode});
+	if (bg) {
+		parts.push(bg);
+	}
+	return parts.join("; ");
+}
+
 export default function format (str) {
+	// Not IS_NODEJS — must re-evaluate at call time so tests can patch process.versions
+	let mode = typeof process === "object" && process?.versions?.node ? "ansi" : "css";
+
 	if (!str) {
-		return str;
+		return mode === "ansi" ? str : [];
 	}
 
 	str = str + "";
@@ -52,7 +80,8 @@ export default function format (str) {
 	let active = new Set();
 	let colorStack = [];
 	let bgStack = [];
-	return str.replace(tagRegex, tag => {
+	let styles = [];
+	str = str.replace(tagRegex, tag => {
 		let isClosing = tag[1] === "/";
 		let name = tag.match(/<\/?(\w+)/)[1];
 		let color = tag.match(/<(?:bg|c)\s+(\w+)>/)?.[1];
@@ -72,27 +101,40 @@ export default function format (str) {
 				return "";
 			}
 
-			let activeColor = colorStack.at(-1);
-			let colorModifier = getColorCode(activeColor);
-			let activeBg = bgStack.at(-1);
-			let bgColorModifier = getColorCode(activeBg, {bg: true});
-			return modifiers.reset + [...active].map(name => modifiers[name]).join("") + colorModifier + bgColorModifier;
+			if (mode === "css") {
+				styles.push(getCSS(active, colorStack, bgStack, mode));
+				return "%c";
+			}
+
+			let activeColor = getColor(colorStack.at(-1), {mode});
+			let activeBg = getColor(bgStack.at(-1), {bg: true, mode});
+			return modifiers.reset.ansi + [...active].map(name => modifiers[name].ansi).join("") + activeColor + activeBg;
 		}
 		else {
 			if (name === "c") {
 				colorStack.push(color);
-				return getColorCode(color);
 			}
 			else if (name === "bg") {
 				bgStack.push(color);
-				return getColorCode(color, {bg: true});
 			}
 			else {
 				active.add(name);
-				return modifiers[name];
 			}
+
+			if (mode === "css") {
+				styles.push(getCSS(active, colorStack, bgStack, mode));
+				return "%c";
+			}
+
+			if (name === "c" || name === "bg") {
+				return getColor(color, {bg: name === "bg", mode});
+			}
+
+			return modifiers[name].ansi;
 		}
 	});
+
+	return mode === "css" ? [str, ...styles] : str;
 }
 
 export function stripFormatting (str) {

@@ -1,5 +1,4 @@
 import format, { stripFormatting } from "../src/format-console.js";
-import chalk from "chalk";
 
 // We don't want to use map because it will output unmapped values on fail as well, causing a mess in this very special case
 function escape (str) {
@@ -11,6 +10,7 @@ export default {
 	tests: [
 		{
 			name: "Formatting",
+			skip: typeof process === "undefined",
 			run (str) {
 				return escape(format(str));
 			},
@@ -33,14 +33,38 @@ export default {
 				{
 					name: "Light color",
 					args: "<c lightred>light red</c>",
-					// expect: "\\x1b[91mlight red\\x1b[0m"
-					expect: escape(chalk.redBright("light red")),
+					expect: "\\x1b[91mlight red\\x1b[0m",
 				},
 				{
 					name: "Light background color",
 					args: "<bg lightred>light red</bg>",
-					// expect: "\\x1b[101mlight red\\x1b[0m"
-					expect: escape(chalk.bgRedBright("light red")),
+					expect: "\\x1b[101mlight red\\x1b[0m",
+				},
+			],
+		},
+		{
+			name: "CSS formatting",
+			skip: typeof process === "undefined",
+			run (str) {
+				let node = process.versions.node;
+				delete process.versions.node;
+				let ret = format(str);
+				process.versions.node = node;
+				return ret;
+			},
+			tests: [
+				{
+					name: "Nested modifiers + colors",
+					args: "<b><bg green><c white> PASS </c></bg></b>",
+					expect: [
+						"%c%c%c PASS %c%c%c",
+						"font-weight: bold",
+						"font-weight: bold; background: green",
+						"font-weight: bold; color: white; background: green",
+						"font-weight: bold; background: green",
+						"font-weight: bold",
+						"",
+					],
 				},
 			],
 		},

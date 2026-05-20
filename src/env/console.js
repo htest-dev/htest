@@ -2,14 +2,14 @@ import format from "../format-console.js";
 
 function printTree (str, parent) {
 	if (str.children?.length > 0) {
-		console["group" + (parent ? "Collapsed" : "")](format(str));
+		console["group" + (parent ? "Collapsed" : "")](...format(str));
 		for (let child of str.children) {
 			printTree(child, str);
 		}
 		console.groupEnd();
 	}
 	else {
-		console.log(format(str));
+		console.log(...format(str));
 	}
 }
 

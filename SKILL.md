@@ -51,7 +51,7 @@ export default {
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | Custom `run` in every test with minor differences     | Extract shared `run` at parent and push the variations into `arg`/`args`. **But** if each test's `run` has unique imperative content (writes, sequences), per-test is correct — don't impose uniformity. |
 | `expect: true` with boolean logic in `run`            | Usually a smell — return the actual value. **Exception:** when the test name is a yes/no question or assertion (e.g. "Inputs are sorted", "Cache hit on repeat read"), the boolean is the literal answer to the name and `expect: true` is fine. |
-| Reading values via `this.arg.X` / `this.args[0]` inside `run` | The parameter list IS where `arg`/`args` arrive. Name and unpack them however fits the case: `run ({ x })`, `run ([first, ...rest])`, `run (args) { let first = args[0]; }`, etc. Reserve `this` for `this.data` (lifecycle state) and instance props. |
+| Reading values via `this.arg.X` / `this.args[0]` inside `run` or hooks | The parameter list IS where `arg`/`args` arrive — in `run`, `beforeEach`, and `afterEach`. Name and unpack them however fits the case: `run ({ x })`, `run ([first, ...rest])`, `run (args) { let first = args[0]; }`, `beforeEach ({ options })`, etc. Reserve `this` for `this.data` (lifecycle state) and instance props. |
 | Inline `//` comment explaining what the test verifies | Use the `description` field — that's its home as structured metadata next to the test. **Keep it brief** (a sentence, maybe two): add what the `name` can't carry — an issue reference, a subtle invariant, a non-obvious edge case. Don't write a paragraph and don't restate the name in prose. Reserve comments for short notes about mechanics. |
 | Setup in `beforeAll` but used in `arg` expressions    | Move to module top level — `arg`/`expect` evaluate at import time, before hooks              |
 | `new Instance()` in both `arg` and `expect`           | Share one instance variable — default check uses `===` at leaves, so two structurally-equal instances fail. See [Reference Equality for Instances](#reference-equality-for-instances). |
@@ -151,7 +151,7 @@ export default {
 
 | Property                   | Description                                                                                    |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `beforeEach` / `afterEach` | Run before/after each test. Receive no parameters — access state via `this.data`, `this.arg`, etc. Inherited. `afterEach` runs even if the test throws. Sync or async |
+| `beforeEach` / `afterEach` | Run before/after each test. Receive the same args as `run` (spread from `args`); `this` is the Test instance, so `this.data` works as in `run`. Inherited. `afterEach` runs even if the test throws. Sync or async |
 | `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Receive no parameters — access state via `this.data`, `this.arg`. **Not inherited** |
 
 ## `this` Inside `run`
@@ -312,13 +312,12 @@ export default {
 
 **Good use: setup hook builds a per-test fixture for `run`**
 
-When setup is more involved than a literal value — instantiating a class, opening a connection, assembling a DOM tree — do it in `beforeEach` and stash the result on `this.data` so `run` (and `afterEach`) can use it. `beforeEach`/`afterEach` are invoked with no arguments, so they read `this.arg` and write `this.data`. `run` still receives its args via the parameter list.
+When setup is more involved than a literal value — instantiating a class, opening a connection, assembling a DOM tree — do it in `beforeEach` and stash the result on `this.data` so `run` (and `afterEach`) can use it. `beforeEach`/`afterEach` receive the same args as `run`, so you can unpack them in the parameter list and write `this.data`.
 
 ```js
 export default {
-	beforeEach () {
-		let parser = new Parser(this.arg.options);
-		Object.assign(this.data, { parser });
+	beforeEach ({ options }) {
+		Object.assign(this.data, { parser: new Parser(options) });
 	},
 	afterEach () {
 		this.data.parser.close();

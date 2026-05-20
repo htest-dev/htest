@@ -87,7 +87,7 @@ export default class TestResult extends BubblingEventTarget {
 				await this.test.beforeAll?.();
 			}
 
-			await this.test.beforeEach?.();
+			await this.test.beforeEach?.apply(this.test, this.test.args);
 
 			let start = performance.now();
 
@@ -104,7 +104,7 @@ export default class TestResult extends BubblingEventTarget {
 				this.error = e;
 			}
 			finally {
-				await this.test.afterEach?.();
+				await this.test.afterEach?.apply(this.test, this.test.args);
 
 				if (!this.parent) {
 					// We are running the test in isolation, so we need to run afterAll

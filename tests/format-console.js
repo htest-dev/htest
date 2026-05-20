@@ -10,6 +10,7 @@ export default {
 	tests: [
 		{
 			name: "Formatting",
+			skip: typeof process === "undefined",
 			run (str) {
 				return escape(format(str));
 			},
@@ -43,6 +44,7 @@ export default {
 		},
 		{
 			name: "CSS formatting",
+			skip: typeof process === "undefined",
 			run (str) {
 				let node = process.versions.node;
 				delete process.versions.node;

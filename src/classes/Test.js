@@ -5,6 +5,7 @@ import { stringify } from "../util.js";
  * Represents a single test or a group of tests
  */
 export default class Test {
+	#parent = null;
 	data = {};
 
 	constructor (test, parent) {
@@ -14,7 +15,7 @@ export default class Test {
 		}
 
 		if (parent) {
-			test.parent = parent;
+			this.#parent = parent;
 			this.level = parent.level + 1;
 		}
 		else {
@@ -23,7 +24,7 @@ export default class Test {
 
 		Object.assign(this, test);
 
-		this.data = Object.create(this.parent?.data ?? null, Object.getOwnPropertyDescriptors(this.data));
+		this.data = Object.create(this.#parent?.data ?? null, Object.getOwnPropertyDescriptors(this.data));
 		this.originalName = this.name;
 
 		if (typeof this.name === "function") {
@@ -32,10 +33,10 @@ export default class Test {
 
 		// Inherit properties from parent
 		// This works recursively because the parent constructor runs before its children
-		if (this.parent) {
+		if (this.#parent) {
 			for (let prop of ["beforeEach", "run", "afterEach", "map", "check", "getName", "args", "expect", "getExpect", "throws", "maxTime", "maxTimeAsync", "skip"]) {
-				if (!(prop in this) && prop in this.parent) {
-					this[prop] = this.parent[prop];
+				if (!(prop in this) && prop in this.#parent) {
+					this[prop] = this.#parent[prop];
 				}
 			}
 		}
@@ -85,6 +86,54 @@ export default class Test {
 				this.expect = this.args[0];
 			}
 		}
+	}
+
+	// Proxy so this.parent.foo() inside an inherited function resolves to
+	// the nearest ancestor with a different foo, not the same inherited one.
+	get parent () {
+		let self = this;
+		let target = this.#parent;
+
+		if (!target) {
+			return null;
+		}
+
+		return new Proxy(target, {
+			get (/** @type {Test} */ test, prop) {
+				let value = test[prop];
+
+				if (typeof prop === "symbol" || typeof value !== "function") {
+					return value;
+				}
+
+				if (self[prop] === value) {
+					/** @type {Test} */
+					let ancestor = test.#parent;
+
+					while (ancestor) {
+						let ancestorValue = ancestor[prop];
+
+						if (typeof ancestorValue === "function" && ancestorValue !== value) {
+							return function (...args) {
+								let originalParent = self.#parent;
+								self.#parent = ancestor.#parent;
+
+								try {
+									return ancestorValue.call(self, ...args);
+								}
+								finally {
+									self.#parent = originalParent;
+								}
+							};
+						}
+
+						ancestor = ancestor.#parent;
+					}
+				}
+
+				return value.bind(self);
+			},
+		});
 	}
 
 	get isTest () {

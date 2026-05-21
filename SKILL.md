@@ -162,7 +162,7 @@ export default {
 - `this.data` — inherited data object
 - `this.name` — test name
 - `this.level` — nesting depth (root = 0). Useful in `getName` for depth-aware labels
-- `this.parent` — parent test/group. Useful for extending the parent's `run` in a child: call `this.parent.run(...args)` first, then transform the result
+- `this.parent` — parent test/group. Useful for calling the parent's version of an inherited function (e.g., `this.parent.run(...args)`, `this.parent.beforeEach()`). Automatically resolves to the nearest ancestor with a different version, so it works at any nesting depth without `.call(this)` or chaining `.parent.parent`
 - `this.expect` — expected value
 
 ## Async

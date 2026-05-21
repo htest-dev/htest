@@ -405,6 +405,27 @@ Useful for tests driven by an external data file, a registry, or computed expect
 tests: rawCases.map(c => ({ ...c, expect: referenceImpl(c.arg) })),
 ```
 
+## Configuration
+
+Optional. hTest looks for `{,_,.}htest.{json,config.json,config.js}` in the project root. Accepts any CLI flag (`ci`, `verbose`) or runner option as a property; CLI flags override config values.
+
+### `setup` — Pre-Test Scripts
+
+Import scripts before any test file is loaded. Runs once, sequentially. Paths resolve relative to cwd. Each entry is a string or `{ src, loadIf }` — `loadIf` is evaluated at config import time; if `false`, the script is skipped.
+
+```js
+// htest.config.js
+export default {
+	setup: [
+		"test/polyfills/dom.js",
+		{
+			src: "test/polyfills/structured-clone.js",
+			loadIf: !globalThis.structuredClone,
+		},
+	],
+};
+```
+
 ## Running Tests
 
 ```bash

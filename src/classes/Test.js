@@ -23,7 +23,7 @@ export default class Test {
 
 		Object.assign(this, test);
 
-		this.data = Object.assign({}, this.parent?.data, this.data);
+		this.data = Object.assign(Object.create(this.parent?.data ?? Object.prototype), this.data);
 		this.originalName = this.name;
 
 		if (typeof this.name === "function") {

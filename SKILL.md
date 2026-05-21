@@ -81,7 +81,7 @@ All properties are optional and inherit from parent to child.
 | `getName`     | Function to generate names dynamically. Called like `run`: `getName.apply(test, args)`. Inherited (unlike `name`)                |
 | `description` | Human-readable explanation of the test's intent or edge case. Ignored by the runner                                              |
 | `tests`       | Array of child tests. If present, this is a group (parent); if absent, a leaf test                                               |
-| `data`        | Inherited object accessible via `this.data`. Child data merges with parent                                                       |
+| `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's     |
 | `skip`        | `true` or function returning truthy to skip. Inherited — setting on a parent skips all children                                  |
 
 ### Comparison
@@ -269,7 +269,7 @@ let config = new Map([["key", "value"]]);
 
 ## `data` — Shared Fixtures
 
-`data` is a cascading object accessible to `run` and any setup hook via `this.data`. A test's `data` merges with its parent's, so common values can live at a higher level and be overridden where needed. The full definition lives in the docs ([define / data](https://htest.dev/define/#data)) — what follows is patterns that come up in practice.
+`data` is a cascading object accessible to `run` and any setup hook via `this.data`. A child's `data` inherits from its parent's via the prototype chain, so properties set on a parent — even after construction (e.g., in `beforeAll`) — are visible to children. A child's own `data` properties shadow the parent's. The full definition lives in the docs ([define / data](https://htest.dev/define/#data)) — what follows is patterns that come up in practice.
 
 **Good use: shared object, accessed via `this.data`**
 

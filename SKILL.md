@@ -407,7 +407,7 @@ tests: rawCases.map(c => ({ ...c, expect: referenceImpl(c.arg) })),
 
 ## Configuration
 
-Optional. hTest looks for `{,_,.}htest.{json,config.json,config.js}` in the project root.
+Optional. hTest looks for `{,_,.}htest.{json,config.json,config.js}` in the project root. Accepts any CLI flag (`ci`, `verbose`) or runner option as a property; CLI flags override config values.
 
 ### `setup` — Pre-Test Scripts
 

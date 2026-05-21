@@ -22,9 +22,10 @@ No Prettier, no EditorConfig — ESLint only (`eslint.config.js`).
 ```
 src/
   index.js              Main exports: Test, TestResult, map, check, render, env
-  cli.js                CLI entry: arg parsing, config file discovery, calls run()
+  cli.js                CLI entry: arg parsing, calls run()
   run.js                Environment-agnostic runner: resolves env, creates Test + TestResult
   check.js              Assertion library: equals, subset, proximity, deep, range, and/or
+  config.js             Config file discovery, loading, and setup script processing
   map.js                Value extraction utilities (extract, extractNumbers, trimmed)
   format-console.js     ANSI formatting with custom HTML-like tag syntax
   render.js             Browser-side: renders JS-first tests as HTML reftest tables

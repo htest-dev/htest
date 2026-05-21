@@ -114,6 +114,29 @@ import run from "../node_modules/htest.dev/src/run.js";
 run("tests/*.js");
 ```
 
+## Configuration
+
+Create `htest.config.js` in your project root (dotfile and JSON variants also supported):
+
+```js
+export default {
+	setup: [
+		"test/polyfills/dom.js",
+		{
+			src: "test/polyfills/structured-clone.js",
+			loadIf: !globalThis.structuredClone,
+		},
+	],
+};
+```
+
+### `setup` — Pre-test scripts
+
+Import one or more scripts before any test file is loaded. Useful for polyfills, shims, or global test helpers.
+Scripts are imported sequentially (later entries may depend on earlier ones). Paths resolve relative to the current working directory.
+
+Each entry is a path string or an object with `src` and optional `loadIf`. If `loadIf` is `false`, the script is skipped.
+
 ## Running in CI environments
 
 For continuous integration environments, you can use the `--ci` flag to optimize output for CI systems:

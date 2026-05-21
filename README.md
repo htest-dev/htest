@@ -32,6 +32,7 @@ https://htest.dev
 - <span>✅</span> **ESM-first**: Written in ESM from the get-go.
 - <span>✅</span> **CLI and browser**: Run your tests in the command line, in the browser, or both.
 - <span>✅</span> **CI-ready**: Fully compatible with continuous integration and automated test running processes.
+- <span>✅</span> **Configurable**: Use a config file for setup scripts, CLI flags, and shared options across your test suite.
 - <span>✅</span> **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
 - <span>✅</span> **AI-agent friendly**: Ships with a [`SKILL.md`](SKILL.md) reference for AI coding agents — teach Claude Code, Cursor, Copilot, and others to write hTest tests correctly.
 

@@ -226,7 +226,7 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 
 ## AI Agent Integration
 
-hTest ships with a [`SKILL.md`](SKILL.md) — a comprehensive reference that teaches AI coding agents how to write hTest tests correctly.
+hTest ships with a [`SKILL.md`](SKILL.md) ([read online](SKILL.html)) — a comprehensive reference that teaches AI coding agents how to write hTest tests correctly.
 
 The easiest way to install it is via the [`skills`](https://github.com/vercel-labs/skills) CLI, which supports 45+ agents (Claude Code, Cursor, Copilot, Gemini CLI, Codex, Windsurf, and many more):
 

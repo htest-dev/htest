@@ -58,7 +58,7 @@ These cascade from parent to child (set in `Test.js` constructor):
 beforeEach  run  afterEach  map  check  getName  args  expect  getExpect  throws  maxTime  maxTimeAsync  skip
 ```
 
-NOT inherited: `beforeAll`, `afterAll`, `name`. `data` is merged (child extends parent), not replaced.
+NOT inherited: `beforeAll`, `afterAll`, `name`. `data` inherits via prototype chain (child sees parent's data; own properties shadow parent's).
 
 ## Self-hosted testing
 

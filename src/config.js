@@ -31,13 +31,13 @@ export function normalizeScripts (scripts) {
 		scripts = [scripts];
 	}
 
-	return scripts.map(entry => typeof entry === "string" ? { src: entry } : entry);
+	return scripts.map(script => typeof script === "string" ? { src: script } : script);
 }
 
 export async function loadScripts (scripts) {
-	let entries = normalizeScripts(scripts);
+	scripts = normalizeScripts(scripts);
 
-	for (let { src, loadIf } of entries) {
+	for (let { src, loadIf } of scripts) {
 		if (loadIf === false) {
 			continue;
 		}

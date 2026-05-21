@@ -116,10 +116,11 @@ run("tests/*.js");
 
 ## Configuration
 
-Create `htest.config.js` in your project root (dotfile and JSON variants also supported):
+Create `htest.config.js` in your project root (dotfile and JSON variants also supported). Any CLI option (`ci`, `verbose`) or runner option (`format`) can be set here. CLI flags override config values.
 
 ```js
 export default {
+	verbose: true,
 	setup: [
 		"test/polyfills/dom.js",
 		{

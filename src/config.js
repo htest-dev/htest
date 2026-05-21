@@ -26,16 +26,12 @@ export async function getConfig (glob = CONFIG_GLOB) {
 	}
 }
 
-export function normalizeScripts (scripts) {
+export async function loadScripts (scripts) {
 	if (!Array.isArray(scripts)) {
 		scripts = [scripts];
 	}
 
-	return scripts.map(script => typeof script === "string" ? { src: script } : script);
-}
-
-export async function loadScripts (scripts) {
-	scripts = normalizeScripts(scripts);
+	scripts = scripts.map(script => typeof script === "string" ? { src: script } : script);
 
 	for (let { src, loadIf } of scripts) {
 		if (loadIf === false) {

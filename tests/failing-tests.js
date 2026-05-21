@@ -17,5 +17,13 @@ export default {
 			arg: 42,
 			expect: 42,
 		},
+		{
+			name: "beforeEach() throws",
+			beforeEach () {
+				throw new Error("setup failed");
+			},
+			run: () => "foo",
+			expect: "foo",
+		},
 	],
 };

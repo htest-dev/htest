@@ -87,11 +87,10 @@ export default class TestResult extends BubblingEventTarget {
 				await this.test.beforeAll?.();
 			}
 
-			await this.test.beforeEach?.apply(this.test, this.test.args);
-
-			let start = performance.now();
-
 			try {
+				await this.test.beforeEach?.apply(this.test, this.test.args);
+
+				let start = performance.now();
 				this.actual = this.test.run ? this.test.run.apply(this.test, this.test.args) : this.test.args[0];
 				this.timeTaken = performance.now() - start;
 

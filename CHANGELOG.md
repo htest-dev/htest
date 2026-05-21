@@ -1,5 +1,30 @@
 # Change Log
 
+## v0.0.25 (2026-05-21)
+
+### New features
+
+- Support setup scripts via the `setup` config option — automatically import shims, polyfills, or global test helpers without repeating the import in every test file (#145)
+- Inherit `data` via prototype chain — child tests see parent data, own properties shadow without destroying the parent's (#142)
+- Pass test args to `beforeEach`/`afterEach` callbacks, so hooks can access the same arguments as `run` (#132)
+
+### Bug fixes
+
+- Catch `beforeEach()` errors instead of crashing — they now surface as test failures and `afterEach` still runs (#143)
+
+### Improvements
+
+- Strategy-aware diff output for failing tests — picks char, word, or line diff based on value shape (#127)
+- CSS-based console output for browsers; strip ANSI codes in non-TTY environments. Removes the `chalk` dependency (#133)
+
+### Docs & DX
+
+- Refine SKILL.md: frontload best practices, add common mistakes, clarify hook signatures (#130)
+- Add "read online" link for the rendered SKILL.md on the docs site
+- Fix broken CDN URL for the `diff` library used in browser builds
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.24...v0.0.25
+
 ## v0.0.24 (2026-04-06)
 
 ### Bug fixes

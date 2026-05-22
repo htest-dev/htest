@@ -83,7 +83,7 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
-		let error, source;
+		let error;
 
 		this.messages = await interceptConsole(async () => {
 			if (!this.parent) {
@@ -92,8 +92,8 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.beforeAll?.();
 				}
 				catch (e) {
+					e.source = "beforeAll";
 					this.error = error = e;
-					source = "beforeAll";
 				}
 			}
 
@@ -102,8 +102,8 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.beforeEach?.apply(this.test, this.test.args);
 				}
 				catch (e) {
+					e.source = "beforeEach";
 					this.error = error = e;
-					source = "beforeEach";
 				}
 			}
 
@@ -129,9 +129,9 @@ export default class TestResult extends BubblingEventTarget {
 				await this.test.afterEach?.apply(this.test, this.test.args);
 			}
 			catch (e) {
+				e.source = "afterEach";
 				this.error ??= e;
 				error ??= e;
-				source ??= "afterEach";
 			}
 
 			if (!this.parent) {
@@ -140,15 +140,15 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.afterAll?.();
 				}
 				catch (e) {
+					e.source = "afterAll";
 					this.error ??= e;
 					error ??= e;
-					source ??= "afterAll";
 				}
 			}
 		});
 
 		if (error) {
-			this.details = [`${source}: ${this.error.message}`];
+			this.details = [`${this.error.source}: ${this.error.message}`];
 			this.skip();
 		}
 		else {
@@ -215,6 +215,7 @@ export default class TestResult extends BubblingEventTarget {
 						await this.test.beforeAll?.();
 					}
 					catch (e) {
+						e.source = "beforeAll";
 						error = e;
 					}
 				}
@@ -228,7 +229,7 @@ export default class TestResult extends BubblingEventTarget {
 						this.skip();
 					}
 					else if (error) {
-						this.details = [`beforeAll: ${error.message}`];
+						this.details = [`${error.source}: ${error.message}`];
 						this.skip();
 					}
 					else {

@@ -70,7 +70,7 @@ All properties are optional and inherit from parent to child.
 | `arg`       | Single argument passed to `run`. Can be any value                                                                                                                                                                     |
 | `args`      | Array of arguments passed to `run`. Non-arrays auto-wrapped. `arg` takes precedence                                                                                                                                  |
 | `expect`    | Expected result. Deep equality by default                                                                                                                                                                             |
-| `getExpect` | Function to generate expected value dynamically. Called like `run`: `getExpect.apply(test, args)`. Inherited. `expect` takes precedence if both are set                                                               |
+| `getExpect` | Function to generate expected value dynamically. Called like `run`: `getExpect.apply(test, args)`. Inherited. `expect` takes precedence if both are set. If the getter throws, falls through to default (`args[0]`) |
 | `throws`    | `true` (any error), `false` (asserts no error thrown), Error subclass (`TypeError`), or predicate `e => e.code === "ENOENT"`. Inherited                                                                               |
 
 ### Structure
@@ -78,10 +78,11 @@ All properties are optional and inherit from parent to child.
 | Property      | Description                                                                                                                      |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `name`        | Test/group label. Also accessible via `this.name` and `this.parent.name` in `run`. If a function, it's used as `getName` instead |
-| `getName`     | Function to generate names dynamically. Called like `run`: `getName.apply(test, args)`. Inherited (unlike `name`)                |
+| `getName`     | Function to generate names dynamically. Called like `run`: `getName.apply(test, args)`. Inherited (unlike `name`). If the getter throws, falls through to default (first arg or "(No args)") |
 | `description` | Human-readable explanation of the test's intent or edge case. Ignored by the runner                                              |
 | `tests`       | Array of child tests. If present, this is a group (parent); if absent, a leaf test                                               |
-| `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's     |
+| `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's. If a function, it's used as `getData` instead |
+| `getData`     | Function to generate data dynamically. Called like `run`: `getData.apply(test, args)`. Inherited. `data` (literal) takes precedence if both are set. If the getter throws, falls through to empty data |
 | `skip`        | `true` or function returning truthy to skip. Inherited — setting on a parent skips all children                                  |
 
 ### Comparison
@@ -306,6 +307,26 @@ export default {
 			data: { mode: "loose" },
 			tests: [{ arg: "foo", expect: "foo" }],
 		},
+	],
+};
+```
+
+**Good use: `getData` for fresh per-test data**
+
+When each test needs its own fresh data (e.g., an empty array to push into), use `getData` instead of `beforeEach`:
+
+```js
+export default {
+	getData () {
+		return { items: [] };
+	},
+	run () {
+		this.data.items.push(1);
+		return this.data.items.length;
+	},
+	tests: [
+		{ expect: 1 },
+		{ expect: 1 },  // Each test gets its own fresh array
 	],
 };
 ```

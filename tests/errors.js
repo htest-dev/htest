@@ -229,5 +229,20 @@ export default {
 			},
 			expect: true,
 		},
+		{
+			name: "AssertionError treated as failure (issue #114)",
+			skip: typeof globalThis.process === "undefined",
+			async run () {
+				let { strict: assert } = await import("node:assert");
+				let result = await runTest({
+					run () {
+						assert.equal("hello".toUpperCase(), "hello");
+					},
+					expect: "HELLO",
+				});
+				return { actual: result.actual, expected: result.test.expect, pass: result.pass };
+			},
+			expect: { actual: "HELLO", expected: "hello", pass: false },
+		},
 	],
 };

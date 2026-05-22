@@ -61,12 +61,8 @@ export default {
 		{
 			name: "Elided array hunks",
 			args: [
-				elisionBase.map(line =>
-					line === "line6" ? "X" : line === "line14" ? "Y" : line,
-				),
-				elisionBase.map(line =>
-					line === "line6" ? "x" : line === "line14" ? "y" : line,
-				),
+				elisionBase.map(line => (line === "line6" ? "X" : line === "line14" ? "Y" : line)),
+				elisionBase.map(line => (line === "line6" ? "x" : line === "line14" ? "y" : line)),
 			],
 			expect: ` Actual ↔ Expected:
   <dim>… 5 matching lines …</dim>

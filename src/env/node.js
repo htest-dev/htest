@@ -56,12 +56,12 @@ function getTree (msg, i) {
 			expandedHighlighted: "▼",
 		};
 
-		let {collapsed, highlighted, children} = msg;
+		let { collapsed, highlighted, children } = msg;
 
 		let icon = collapsed ? icons.collapsed : icons.expanded;
 		if (highlighted) {
-			icon = `<c green><b>${ collapsed ? icons.collapsedHighlighted : icons.expandedHighlighted }</b></c>`;
-			msg = `<b>${ msg }</b>`;
+			icon = `<c green><b>${collapsed ? icons.collapsedHighlighted : icons.expandedHighlighted}</b></c>`;
+			msg = `<b>${msg}</b>`;
 		}
 		msg = icon + " " + msg;
 		msg = new String(msg);
@@ -69,7 +69,7 @@ function getTree (msg, i) {
 		msg.children = collapsed ? [] : children;
 	}
 
-	return new AsciiTree(`</dim>${ msg }<dim>`, ...(msg.children?.map(getTree) ?? []));
+	return new AsciiTree(`</dim>${msg}<dim>`, ...(msg.children?.map(getTree) ?? []));
 }
 
 // Render the tests stats
@@ -88,13 +88,23 @@ const filenamePatterns = {
 };
 
 async function getTestsIn (dir) {
-	let filenames = fs.readdirSync(dir).filter(name => !filenamePatterns.exclude.test(name) && filenamePatterns.include.test(name));
+	let filenames = fs
+		.readdirSync(dir)
+		.filter(
+			name => !filenamePatterns.exclude.test(name) && filenamePatterns.include.test(name),
+		);
 	let cwd = process.cwd();
 	let paths = filenames.map(name => path.join(cwd, dir, name));
 
-	return Promise.all(paths.map(path => import(pathToFileURL(path)).then(module => module.default, err => {
-		console.error(`Error importing tests from ${path}:`, err);
-	})));
+	return Promise.all(
+		paths.map(path =>
+			import(pathToFileURL(path)).then(
+				module => module.default,
+				err => {
+					console.error(`Error importing tests from ${path}:`, err);
+				},
+			)),
+	);
 }
 
 export default {
@@ -110,7 +120,8 @@ export default {
 			// Directory provided, fetch all files
 			return getTestsIn(location);
 		}
-		else { // Probably a glob
+		else {
+			// Probably a glob
 			// Convert paths to imported modules
 			let modules = globSync(location).flatMap(paths => {
 				// Convert paths to imported modules
@@ -123,7 +134,6 @@ export default {
 
 			return Promise.all(modules);
 		}
-
 	},
 	setup () {
 		process.env.NODE_ENV = "test";
@@ -246,7 +256,7 @@ Use <b>any other key</b> to quit interactive mode.
 							active = groups[index];
 							active.collapsed = true;
 
-							groups = groups.map(group => group.highlighted = false);
+							groups = groups.map(group => (group.highlighted = false));
 							active.highlighted = true;
 							render(root, options);
 						}

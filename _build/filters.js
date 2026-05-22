@@ -14,17 +14,21 @@ export function relative (page) {
 export function safeDump (o) {
 	var cache = new WeakSet();
 
-	return JSON.stringify(o, (key, value) => {
-		if (typeof value === "object" && value !== null) {
-			// No circular reference found
+	return JSON.stringify(
+		o,
+		(key, value) => {
+			if (typeof value === "object" && value !== null) {
+				// No circular reference found
 
-			if (cache.has(value)) {
-				return; // Circular reference found!
+				if (cache.has(value)) {
+					return; // Circular reference found!
+				}
+
+				cache.add(value);
 			}
 
-			cache.add(value);
-		}
-
-		return value;
-	}, "\t");
+			return value;
+		},
+		"\t",
+	);
 }

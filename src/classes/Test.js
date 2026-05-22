@@ -23,7 +23,10 @@ export default class Test {
 
 		Object.assign(this, test);
 
-		this.data = Object.create(this.parent?.data ?? null, Object.getOwnPropertyDescriptors(this.data));
+		this.data = Object.create(
+			this.parent?.data ?? null,
+			Object.getOwnPropertyDescriptors(this.data),
+		);
 		this.originalName = this.name;
 
 		if (typeof this.name === "function") {
@@ -33,7 +36,21 @@ export default class Test {
 		// Inherit properties from parent
 		// This works recursively because the parent constructor runs before its children
 		if (this.parent) {
-			for (let prop of ["beforeEach", "run", "afterEach", "map", "check", "getName", "args", "expect", "getExpect", "throws", "maxTime", "maxTimeAsync", "skip"]) {
+			for (let prop of [
+				"beforeEach",
+				"run",
+				"afterEach",
+				"map",
+				"check",
+				"getName",
+				"args",
+				"expect",
+				"getExpect",
+				"throws",
+				"maxTime",
+				"maxTimeAsync",
+				"skip",
+			]) {
 				if (!(prop in this) && prop in this.parent) {
 					this[prop] = this.parent[prop];
 				}
@@ -44,7 +61,7 @@ export default class Test {
 			this.check = check.equals;
 		}
 		else if (typeof this.check === "object") {
-			let {deep, ...options} = this.check;
+			let { deep, ...options } = this.check;
 			let shallowEquals = check.shallowEquals(options);
 			this.check = deep ? check.deep(shallowEquals) : shallowEquals;
 		}
@@ -74,7 +91,9 @@ export default class Test {
 		}
 
 		if (this.isGroup) {
-			this.tests = this.tests.filter(Boolean).map(t => t instanceof Test ? t : new Test(t, this));
+			this.tests = this.tests
+				.filter(Boolean)
+				.map(t => (t instanceof Test ? t : new Test(t, this)));
 		}
 
 		if (!("expect" in this)) {

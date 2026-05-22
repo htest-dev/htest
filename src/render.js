@@ -27,27 +27,36 @@ export default function render (test) {
 		let table;
 		let section = create("section", {
 			contents: [
-				{tag: "h1", textContent: t.name},
-				t.description && {tag: "p", textContent: t.description},
-				table = create({tag: "table", class: "manual reftest",
-					contents: tests.flatMap(t2 => t2?.tests ?? t2).map((t2, i) => {
-						let tr = t2.render?.() ?? create("tr", {
-							title: t2.name,
-							contents: [
-								{tag: "td", textContent: t2.args?.map(a => output(a)).join(", ") },
-								{tag: "td"},
-								{tag: "td", textContent: output(t2.expect) },
-							],
-						});
+				{ tag: "h1", textContent: t.name },
+				t.description && { tag: "p", textContent: t.description },
+				(table = create({
+					tag: "table",
+					class: "manual reftest",
+					contents: tests
+						.flatMap(t2 => t2?.tests ?? t2)
+						.map((t2, i) => {
+							let tr =
+								t2.render?.() ??
+								create("tr", {
+									title: t2.name,
+									contents: [
+										{
+											tag: "td",
+											textContent: t2.args?.map(a => output(a)).join(", "),
+										},
+										{ tag: "td" },
+										{ tag: "td", textContent: output(t2.expect) },
+									],
+								});
 
-						if (t2.throws) {
-							tr.dataset.error = "";
-						}
+							if (t2.throws) {
+								tr.dataset.error = "";
+							}
 
-						testRows.set(t2, tr);
-						return tr;
-					}),
-				}),
+							testRows.set(t2, tr);
+							return tr;
+						}),
+				})),
 			],
 			inside: document.body,
 		});

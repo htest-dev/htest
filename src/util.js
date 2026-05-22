@@ -13,7 +13,7 @@ export const IS_NODEJS = typeof process === "object" && process?.versions?.node;
 export function getType (value, { preserveCase = false } = {}) {
 	let str = Object.prototype.toString.call(value);
 
-	let ret = (str.match(/^\[object\s+(.*?)\]$/)[1] || "");
+	let ret = str.match(/^\[object\s+(.*?)\]$/)[1] || "";
 
 	if (!preserveCase) {
 		ret = ret.toLowerCase();
@@ -42,7 +42,6 @@ export function toPrecision (number, significantDigits) {
 	}
 
 	let abs = Math.abs(n);
-
 
 	if (abs < 1) {
 		return n.toPrecision(significantDigits);
@@ -126,10 +125,13 @@ export const stringifyFlavors = {
 		let indent = "\t".repeat(level);
 
 		if (obj?.[Symbol.iterator] && !["String", "Array"].includes(type)) {
-			return `${type}(${ obj.length ?? obj.size }) ` + objects.join(obj, ", ", {
-				indent,
-				map: o => stringify(o),
-			 });
+			return (
+				`${type}(${obj.length ?? obj.size}) ` +
+				objects.join(obj, ", ", {
+					indent,
+					map: o => stringify(o),
+				})
+			);
 		}
 		else if (globalThis.HTMLElement && obj instanceof HTMLElement) {
 			return obj.outerHTML;
@@ -245,4 +247,3 @@ export async function interceptConsole (fn) {
 export function pluralize (n, singular, plural) {
 	return n === 1 ? singular : plural;
 }
-

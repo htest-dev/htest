@@ -17,10 +17,10 @@ export async function getConfig (glob = CONFIG_GLOB) {
 		let importParams;
 		configPath = path.join(process.cwd(), configPath);
 		if (configPath.endsWith(".json")) {
-			importParams = {assert: { type: "json" }, with: { type: "json" }};
+			importParams = { assert: { type: "json" }, with: { type: "json" } };
 		}
 
-		config = await import(configPath, importParams).then(m => config = m.default);
+		config = await import(configPath, importParams).then(m => (config = m.default));
 
 		return config;
 	}
@@ -31,7 +31,7 @@ export async function loadScripts (scripts) {
 		scripts = [scripts];
 	}
 
-	scripts = scripts.map(script => typeof script === "string" ? { src: script } : script);
+	scripts = scripts.map(script => (typeof script === "string" ? { src: script } : script));
 
 	for (let { src, loadIf } of scripts) {
 		if (loadIf === false) {

@@ -103,11 +103,7 @@ export function deep (check = (a, b) => a === b) {
  * @param {number} [options.epsilon = 0] Epsilon for number comparison
  * @returns {(actual, expect) => boolean}
  */
-export function shallowEquals ({
-	looseTypes = false,
-	subset = false,
-	epsilon = 0,
-} = {}) {
+export function shallowEquals ({ looseTypes = false, subset = false, epsilon = 0 } = {}) {
 	return function (actual, expect) {
 		if (expect === actual) {
 			return true;
@@ -157,7 +153,7 @@ export const equals = deep(shallowEquals());
  * @param {*} actual
  * @returns {boolean}
  */
-export const subset = deep(shallowEquals({subset: true}));
+export const subset = deep(shallowEquals({ subset: true }));
 
 /**
  * Compare numbers or lists of numbers with a margin of error
@@ -165,8 +161,8 @@ export const subset = deep(shallowEquals({subset: true}));
  * @param {number} [options.epsilon = Number.EPSILON] Epsilon for comparison
  * @returns {(actual, expect) => boolean}
  */
-export function proximity ({epsilon = Number.EPSILON, ...options} = {}) {
-	return shallowEquals({epsilon, ...options});
+export function proximity ({ epsilon = Number.EPSILON, ...options } = {}) {
+	return shallowEquals({ epsilon, ...options });
 }
 
 /**
@@ -190,9 +186,9 @@ export function range (options = {}) {
 
 	return function (actual) {
 		return (
-			(options.lt  === undefined || actual <  options.lt)  &&
+			(options.lt === undefined || actual < options.lt) &&
 			(options.lte === undefined || actual <= options.lte) &&
-			(options.gt  === undefined || actual >  options.gt)  &&
+			(options.gt === undefined || actual > options.gt) &&
 			(options.gte === undefined || actual >= options.gte)
 		);
 	};

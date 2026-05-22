@@ -4,11 +4,11 @@ import { stripFormatting } from "../format-console.js";
 // Dual Node/browser import. Kept version in the CDN URL in sync with package.json.
 // `diffWordsWithSpace` keeps whitespace as part of token boundaries so the
 // reconstructed string matches the input; plain `diffWords` collapses it.
-const { diffChars, diffLines, diffWordsWithSpace: diffWords } = await import(
-	IS_NODEJS
-		? "diff"
-		: "https://cdn.jsdelivr.net/npm/diff@8.0.4/libesm/index.js"
-);
+const {
+	diffChars,
+	diffLines,
+	diffWordsWithSpace: diffWords,
+} = await import(IS_NODEJS ? "diff" : "https://cdn.jsdelivr.net/npm/diff@8.0.4/libesm/index.js");
 
 /** @typedef {{value: string, added?: boolean, removed?: boolean}} Change */
 
@@ -60,7 +60,8 @@ function cleanup (changes) {
 			ret.push(changes[i++]);
 			continue;
 		}
-		let removed = "", added = "";
+		let removed = "",
+			added = "";
 		while (i < changes.length && !boundary[i]) {
 			let change = changes[i++];
 			if (change.removed) {
@@ -111,8 +112,8 @@ export function formatDiff (actual, expected, unmapped = {}) {
 		let expectedLabel = sides.expected.label;
 
 		return [
-			`${ actualLabel }${ actualString } <dim>(${ actualType })</dim>`,
-			`${ expectedLabel }${ expectedString } <dim>(${ expectedType })</dim>`,
+			`${actualLabel}${actualString} <dim>(${actualType})</dim>`,
+			`${expectedLabel}${expectedString} <dim>(${expectedType})</dim>`,
 			` <dim>(values are stringified identically but not equal)</dim>`,
 		].join("\n");
 	}
@@ -122,15 +123,16 @@ export function formatDiff (actual, expected, unmapped = {}) {
 	}
 
 	let long =
-		Math.max(actualString.length, expectedString.length) > INLINE_MAX
-		&& actualString.includes(" ") && expectedString.includes(" ");
+		Math.max(actualString.length, expectedString.length) > INLINE_MAX &&
+		actualString.includes(" ") &&
+		expectedString.includes(" ");
 
 	return sideBySide(actualString, expectedString, unmapped, !long);
 }
 
 function typeMismatch (actual, expected, actualType, expectedType, unmapped) {
 	let values = { actual, expected };
-	let lines = [`Got ${ actualType }, expected ${ expectedType }`];
+	let lines = [`Got ${actualType}, expected ${expectedType}`];
 
 	for (let side in sides) {
 		let { label } = sides[side];
@@ -158,17 +160,17 @@ function sideBySide (actualString, expectedString, unmapped, inline) {
 	let expected = colorize(changes, "expected");
 
 	if (inline) {
-		let left = `Got ${ actual }`;
+		let left = `Got ${actual}`;
 		if ("actual" in unmapped) {
 			left += formatUnmapped(unmapped.actual);
 		}
 
-		let right = `expected ${ expected }`;
+		let right = `expected ${expected}`;
 		if ("expected" in unmapped) {
 			right += formatUnmapped(unmapped.expected);
 		}
 
-		return `${ left }, ${ right }`;
+		return `${left}, ${right}`;
 	}
 
 	let formatted = { actual, expected };
@@ -215,7 +217,7 @@ function lineDiff (actualString, expectedString, unmapped) {
 			let entry = hunk.lines[i];
 
 			if (entry.side === "common") {
-				lines.push(`  ${ entry.text }`);
+				lines.push(`  ${entry.text}`);
 				i++;
 				continue;
 			}
@@ -264,14 +266,14 @@ function colorize (changes, side, prefix) {
 		}
 
 		if (change[action]) {
-			ret += `<bg ${ color }><b>${ change.value }</b></bg>`;
+			ret += `<bg ${color}><b>${change.value}</b></bg>`;
 		}
 		else {
 			ret += change.value;
 		}
 	}
 
-	return prefix ? `<bg lightblack>${ prefix } ${ ret }</bg>` : ret;
+	return prefix ? `<bg lightblack>${prefix} ${ret}</bg>` : ret;
 }
 
 /**
@@ -304,23 +306,23 @@ function formatBlock (removed, added) {
  */
 function formatUnmapped (value, style = "inline") {
 	value = stripFormatting(stringify(value));
-	let ret = ` <dim>(${ value } unmapped)</dim>`;
+	let ret = ` <dim>(${value} unmapped)</dim>`;
 
 	if (style === "gutter") {
-		ret = `           <dim>${ value } unmapped</dim>`;
+		ret = `           <dim>${value} unmapped</dim>`;
 	}
 	else if (style === "actual") {
-		ret = ` <dim>Actual unmapped:   ${ value }</dim>`;
+		ret = ` <dim>Actual unmapped:   ${value}</dim>`;
 	}
 	else if (style === "expected") {
-		ret = ` <dim>Expected unmapped: ${ value }</dim>`;
+		ret = ` <dim>Expected unmapped: ${value}</dim>`;
 	}
 
 	return ret;
 }
 
 function elision (count) {
-	return `  <dim>… ${ count } matching ${ pluralize(count, "line", "lines") } …</dim>`;
+	return `  <dim>… ${count} matching ${pluralize(count, "line", "lines")} …</dim>`;
 }
 
 /**

@@ -32,7 +32,9 @@ export default class TestResult extends BubblingEventTarget {
 		this.options = options;
 
 		if (this.options.only) {
-			this.options.only = Array.isArray(this.options.only) ? this.options.only : [this.options.only];
+			this.options.only = Array.isArray(this.options.only)
+				? this.options.only
+				: [this.options.only];
 		}
 
 		this.addEventListener("done", e => {
@@ -91,7 +93,9 @@ export default class TestResult extends BubblingEventTarget {
 				await this.test.beforeEach?.apply(this.test, this.test.args);
 
 				let start = performance.now();
-				this.actual = this.test.run ? this.test.run.apply(this.test, this.test.args) : this.test.args[0];
+				this.actual = this.test.run
+					? this.test.run.apply(this.test, this.test.args)
+					: this.test.args[0];
 				this.timeTaken = performance.now() - start;
 
 				if (this.actual instanceof Promise) {
@@ -115,7 +119,16 @@ export default class TestResult extends BubblingEventTarget {
 		this.evaluate();
 	}
 
-	static STATS_AVAILABLE = ["pass", "fail", "error", "skipped", "total", "totalTime", "totalTimeAsync", "messages"];
+	static STATS_AVAILABLE = [
+		"pass",
+		"fail",
+		"error",
+		"skipped",
+		"total",
+		"totalTime",
+		"totalTimeAsync",
+		"messages",
+	];
 
 	/**
 	 * Run all tests in the group
@@ -125,17 +138,19 @@ export default class TestResult extends BubblingEventTarget {
 		this.stats = Object.fromEntries(TestResult.STATS_AVAILABLE.map(k => [k, 0]));
 		this.stats.total = this.test.testCount;
 		this.stats.pending = this.stats.total;
-		this.finished = new Promise(resolve => this.addEventListener("finish", resolve, {once: true}));
+		this.finished = new Promise(resolve =>
+			this.addEventListener("finish", resolve, { once: true }));
 
 		let tests = this.test.tests;
 		let childOptions = Object.assign({}, this.options);
 
-		this.dispatchEvent(new Event("start", {bubbles: true}));
+		this.dispatchEvent(new Event("start", { bubbles: true }));
 
 		if (this.options.only) {
 			childOptions.only = childOptions.only.slice();
 			let first = childOptions.only[0];
-			if (/^\d/.test(first)) { // Path
+			if (/^\d/.test(first)) {
+				// Path
 				// TODO ranges (e.g. "0-5")
 				tests = [tests[first]];
 				childOptions.only.unshift();
@@ -190,7 +205,7 @@ export default class TestResult extends BubblingEventTarget {
 			Object.assign(this, this.evaluateResult());
 		}
 
-		this.dispatchEvent(new Event("done", {bubbles: true}));
+		this.dispatchEvent(new Event("done", { bubbles: true }));
 	}
 
 	/**
@@ -198,7 +213,7 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	skip () {
 		this.skipped = true;
-		this.dispatchEvent(new Event("done", {bubbles: true}));
+		this.dispatchEvent(new Event("done", { bubbles: true }));
 	}
 
 	/**
@@ -207,28 +222,32 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluateThrown () {
 		let test = this.test;
-		let ret = {pass: !!this.error, details: []};
+		let ret = { pass: !!this.error, details: [] };
 
 		// We may have more picky criteria for the error
 		if (ret.pass) {
 			if (test.throws === false) {
 				// We expect no error, but got one
 				ret.pass = false;
-				ret.details.push(`Expected no error, but got ${ this.error }`);
+				ret.details.push(`Expected no error, but got ${this.error}`);
 			}
 			else if (test.throws.prototype instanceof Error) {
 				// We want a specific subclass, e.g. TypeError
 				ret.pass &&= this.error instanceof test.throws;
 
 				if (!ret.pass) {
-					ret.details.push(`Got error ${ this.error }, but was not a subclass of ${ test.throws.name }`);
+					ret.details.push(
+						`Got error ${this.error}, but was not a subclass of ${test.throws.name}`,
+					);
 				}
 			}
 			else if (typeof test.throws === "function") {
 				ret.pass &&= test.throws(this.error);
 
 				if (!ret.pass) {
-					ret.details.push(`Got error ${ this.error }, but didn’t pass test ${ test.throws }`);
+					ret.details.push(
+						`Got error ${this.error}, but didn’t pass test ${test.throws}`,
+					);
 				}
 			}
 		}
@@ -237,7 +256,9 @@ export default class TestResult extends BubblingEventTarget {
 			ret.pass = true;
 		}
 		else {
-			ret.details.push(`Expected error but ${ this.actual !== undefined ? `got ${ stringify(this.actual) }` : "none was thrown" }`);
+			ret.details.push(
+				`Expected error but ${this.actual !== undefined ? `got ${stringify(this.actual)}` : "none was thrown"}`,
+			);
 		}
 
 		return ret;
@@ -249,24 +270,30 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluateResult () {
 		let test = this.test;
-		let ret = {pass: true, details: []};
+		let ret = { pass: true, details: [] };
 
 		if (test.map) {
 			try {
 				this.mapped = {
-					actual: Array.isArray(this.actual) ? this.actual.map(test.map) : test.map(this.actual),
-					expect: Array.isArray(test.expect) ? test.expect.map(test.map) : test.map(test.expect),
+					actual: Array.isArray(this.actual)
+						? this.actual.map(test.map)
+						: test.map(this.actual),
+					expect: Array.isArray(test.expect)
+						? test.expect.map(test.map)
+						: test.map(test.expect),
 				};
 
 				try {
 					ret.pass = test.check(this.mapped.actual, this.mapped.expect);
 				}
 				catch (e) {
-					this.error = new Error(`check() failed (working with mapped values). ${ e.message }`);
+					this.error = new Error(
+						`check() failed (working with mapped values). ${e.message}`,
+					);
 				}
 			}
 			catch (e) {
-				this.error = new Error(`map() failed. ${ e.message }`);
+				this.error = new Error(`map() failed. ${e.message}`);
 			}
 		}
 		else {
@@ -274,7 +301,7 @@ export default class TestResult extends BubblingEventTarget {
 				ret.pass = test.check(this.actual, test.expect);
 			}
 			catch (e) {
-				this.error = new Error(`check() failed. ${ e.message }`);
+				this.error = new Error(`check() failed. ${e.message}`);
 			}
 		}
 
@@ -285,8 +312,8 @@ export default class TestResult extends BubblingEventTarget {
 
 		if (!ret.pass) {
 			if (this.error) {
-				ret.details.push(`Got error ${ this.error }
-${ this.error.stack }`);
+				ret.details.push(`Got error ${this.error}
+${this.error.stack}`);
 			}
 			else {
 				let actual = this.mapped?.actual ?? this.actual;
@@ -306,9 +333,9 @@ ${ this.error.stack }`);
 					message = formatDiff(actual, expected, unmapped);
 				}
 				else {
-					message = `Got ${ stringify(actual) }`;
+					message = `Got ${stringify(actual)}`;
 					if (this.mapped && actual !== this.actual) {
-						message += ` <dim>(${ stringify(this.actual) } unmapped)</dim>`;
+						message += ` <dim>(${stringify(this.actual)} unmapped)</dim>`;
 					}
 					message += " which doesn't pass the test provided";
 				}
@@ -326,13 +353,15 @@ ${ this.error.stack }`);
 	 */
 	evaluateTimeTaken () {
 		let test = this.test;
-		let ret = {pass: true, details: []};
+		let ret = { pass: true, details: [] };
 
 		if (test.maxTime) {
 			ret.pass &&= this.timeTaken <= test.maxTime;
 
 			if (!ret.pass) {
-				ret.details.push(`Exceeded max time of ${ test.maxTime }ms (took ${ this.timeTaken }ms)`);
+				ret.details.push(
+					`Exceeded max time of ${test.maxTime}ms (took ${this.timeTaken}ms)`,
+				);
 			}
 		}
 
@@ -340,7 +369,9 @@ ${ this.error.stack }`);
 			ret.pass &&= this.timeTakenAsync <= test.maxTimeAsync;
 
 			if (!ret.pass) {
-				ret.details.push(`Exceeded max async time of ${ test.maxTimeAsync }ms (took ${ this.timeTakenAsync }ms)`);
+				ret.details.push(
+					`Exceeded max async time of ${test.maxTimeAsync}ms (took ${this.timeTakenAsync}ms)`,
+				);
 			}
 		}
 
@@ -360,16 +391,16 @@ ${ this.error.stack }`);
 		let color = this.pass ? "green" : this.skipped ? "yellow" : "red";
 		let label = this.pass ? "PASS" : this.skipped ? "SKIP" : "FAIL";
 		let ret = [
-			`<b><bg ${color}><c white> ${ label } </c></bg></b>`,
+			`<b><bg ${color}><c white> ${label} </c></bg></b>`,
 			`<c light${color}>${this.name ?? "(Anonymous)"}</c>`,
 		].join(" ");
 
 		if (this.messages?.length > 0) {
 			let suffix = pluralize(this.messages.length, "message", "messages");
-			ret += ` <dim><b>${ this.messages.length }</b> ${ suffix }</dim>`;
+			ret += ` <dim><b>${this.messages.length}</b> ${suffix}</dim>`;
 		}
 
-		ret += ` <dim>(${ formatDuration(this.timeTaken ?? 0) })</dim>`;
+		ret += ` <dim>(${formatDuration(this.timeTaken ?? 0)})</dim>`;
 
 		if (this.details?.length > 0) {
 			ret += ": " + this.details.join(", ");
@@ -386,36 +417,34 @@ ${ this.error.stack }`);
 	 */
 	getSummary (o = {}) {
 		let stats = this.stats;
-		let ret = [
-			`${this.name ?? (this.test.level === 0 ? "<i>(All tests)</i>" : "")}`,
-		];
+		let ret = [`${this.name ?? (this.test.level === 0 ? "<i>(All tests)</i>" : "")}`];
 
 		if (stats.pass > 0) {
-			ret.push(`<c green><b>${ stats.pass }</b>/${ stats.total } PASS</c>`);
+			ret.push(`<c green><b>${stats.pass}</b>/${stats.total} PASS</c>`);
 		}
 
 		if (stats.fail > 0) {
-			ret.push(`<c red><b>${ stats.fail }</b>/${ stats.total } FAIL</c>`);
+			ret.push(`<c red><b>${stats.fail}</b>/${stats.total} FAIL</c>`);
 		}
 
 		if (stats.pending > 0) {
-			ret.push(`<b>${ stats.pending }</b>/${ stats.total } remaining`);
+			ret.push(`<b>${stats.pending}</b>/${stats.total} remaining`);
 		}
 
 		if (stats.skipped > 0) {
-			ret.push(`<dim><b>${ stats.skipped }</b>/${ stats.total } skipped</dim>`);
+			ret.push(`<dim><b>${stats.skipped}</b>/${stats.total} skipped</dim>`);
 		}
 
 		if (stats.messages > 0) {
 			let suffix = pluralize(stats.messages, "message", "messages");
-			ret.push(`<dim><b>${ stats.messages }</b> ${ suffix }</dim>`);
+			ret.push(`<dim><b>${stats.messages}</b> ${suffix}</dim>`);
 		}
 
 		let icon = stats.fail > 0 ? "❌" : stats.pending > 0 ? "⏳" : "✅";
 		ret.splice(1, 0, icon);
 
 		if (this.timeTaken) {
-			ret.push(`<dim>(${ formatDuration(this.timeTaken) })</dim>`);
+			ret.push(`<dim>(${formatDuration(this.timeTaken)})</dim>`);
 		}
 
 		ret = ret.join(" ");
@@ -431,7 +460,9 @@ ${ this.error.stack }`);
 	 */
 	getMessages (o = {}) {
 		let ret = new String("<c yellow><b><i>(Messages)</i></b></c>");
-		ret.children = this.messages.map(m => `<dim>(${ m.method })</dim> ${ m.args.map(a => stringify(a)).join(" ") }`);
+		ret.children = this.messages.map(
+			m => `<dim>(${m.method})</dim> ${m.args.map(a => stringify(a)).join(" ")}`,
+		);
 
 		return o?.format === "rich" ? ret : stripFormatting(ret);
 	}
@@ -452,8 +483,14 @@ ${ this.error.stack }`);
 			ret = new String(ret);
 
 			if (this.tests) {
-				ret.children = this.tests.filter(t => (t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages > 0) || o?.verbose)
-				                     .flatMap(t => t.toString(o)).filter(Boolean);
+				ret.children = this.tests
+					.filter(
+						t =>
+							t.stats.fail + t.stats.pending + t.stats.skipped + t.stats.messages >
+								0 || o?.verbose,
+					)
+					.flatMap(t => t.toString(o))
+					.filter(Boolean);
 			}
 
 			if (this.messages?.length > 0) {

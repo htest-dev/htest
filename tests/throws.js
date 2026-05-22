@@ -13,7 +13,7 @@ export default {
 			run: () => {
 				throw new TypeError();
 			},
-			throws: (error) => error.constructor === TypeError,
+			throws: error => error.constructor === TypeError,
 		},
 		{
 			name: "Subclass",

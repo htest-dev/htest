@@ -20,8 +20,8 @@ export default function run (test, options = {}) {
 	}
 
 	if (typeof options.env === "string") {
-		import(`./env/${ options.env }.js`)
-			.then(m => run(test, {...options, env: m.default}))
+		import(`./env/${options.env}.js`)
+			.then(m => run(test, { ...options, env: m.default }))
 			.catch(err => {
 				console.error(`Error importing environment ${options.env}`, err);
 			});
@@ -55,7 +55,7 @@ export default function run (test, options = {}) {
 			test = test[0];
 		}
 		else {
-			return run({tests: test}, options);
+			return run({ tests: test }, options);
 		}
 	}
 

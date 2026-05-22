@@ -70,17 +70,20 @@ h1 {
 	letter-spacing: -.04em;
 }
 
-.pass, .count-pass {
+.pass,
+.count-pass {
 	--color: var(--color-pass);
 	--dark-color: var(--color-pass-darker);
 }
 
-.fail, .count-fail {
+.fail,
+.count-fail {
 	--color: var(--color-fail);
 	--dark-color: var(--color-fail-darker);
 }
 
-.skipped, .count-skipped {
+.skipped,
+.count-skipped {
 	--color: var(--color-skipped);
 	--dark-color: var(--color-skipped-darker);
 }
@@ -297,8 +300,8 @@ table.reftest {
 		border: 1px solid hsla(0, 0%, 0%, .1);
 
 		&:not([class]) {
-			--color: rgba(0,0,0,.06);
-			--dark-color: rgba(0,0,0,.3);
+			--color: rgba(0, 0, 0, .06);
+			--dark-color: rgba(0, 0, 0, .3);
 		}
 	}
 
@@ -379,17 +382,20 @@ table.reftest {
 		&::before {
 			content: attr(title) var(--append, "");
 			position: absolute;
-			top: 0; left: 0; right: 0;
+			top: 0;
+			left: 0;
+			right: 0;
 			padding: .4em;
 			background: linear-gradient(to right, var(--dark-color), transparent);
 			color: white;
 			font: bold 75%/1 var(--font-base);
-			text-shadow: 0 0 1px rgba(0,0,0,.5);
+			text-shadow: 0 0 1px rgba(0, 0, 0, .5);
 		}
 	}
 
 	&[data-test="selector"],
 	& [data-test="selector"] {
+
 		& .not::before,
 		& .not::after {
 			content: ":not(";
@@ -405,8 +411,8 @@ table.reftest {
 }
 
 body > section > div {
-	border: 1px solid rgba(0,0,0,.15);
-	background: rgba(0,0,0,.06);
+	border: 1px solid rgba(0, 0, 0, .15);
+	background: rgba(0, 0, 0, .06);
 	padding: .5em;
 	margin: .5em;
 
@@ -419,10 +425,10 @@ body > section > div {
 			padding: .4em;
 			margin: -.66em;
 			margin-bottom: .8em;
-			background: linear-gradient(to right, rgba(0,0,0,.4), transparent);
+			background: linear-gradient(to right, rgba(0, 0, 0, .4), transparent);
 			color: white;
 			font: bold 75%/1 var(--font-base);
-			text-shadow: 0 0 1px rgba(0,0,0,.5);
+			text-shadow: 0 0 1px rgba(0, 0, 0, .5);
 		}
 	}
 }
@@ -470,7 +476,7 @@ body > section > div {
 			a.new-tab {
 				text-decoration: none;
 
-				&:not(:focus-within):not(:hover)  {
+				&:not(:focus-within):not(:hover) {
 					mix-blend-mode: multiply;
 				}
 			}

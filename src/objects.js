@@ -65,12 +65,11 @@ function walker (obj, fn, meta = {}) {
 	if (children instanceof Map || Array.isArray(children)) {
 		// Key-value pairs
 		return children.forEach((value, key) => {
-			let newMeta = {parent: obj, key, level: meta.level + 1};
+			let newMeta = { parent: obj, key, level: meta.level + 1 };
 			fn(value, key, newMeta.parent);
 
 			walker(value, fn, newMeta);
 		});
-
 	}
 	else {
 		return fn(obj, meta.key, meta.parent);
@@ -132,7 +131,9 @@ function clone (obj) {
 		case "Boolean":
 			ret = new globalThis[type](obj);
 			// A common reason to use a wrapper object is to add properties to it
-			let properties = Object.fromEntries(Object.entries(obj).filter(([key, value]) => !isNaN(key) && key !== "length"));
+			let properties = Object.fromEntries(
+				Object.entries(obj).filter(([key, value]) => !isNaN(key) && key !== "length"),
+			);
 			Object.assign(ret, properties);
 			return ret;
 		case "Date":
@@ -146,7 +147,9 @@ function clone (obj) {
 		case "Array":
 			return obj.map(o => clone(o));
 		case "Object":
-			return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key, clone(value)]));
+			return Object.fromEntries(
+				Object.entries(obj).map(([key, value]) => [key, clone(value)]),
+			);
 	}
 
 	if (obj instanceof Node) {
@@ -160,35 +163,40 @@ function clone (obj) {
 	return obj;
 }
 
-export function join (obj, {
-	separator = ",",
-	keyValueSeparator = ":",
-	open = "{",
-	close = "}",
-	indent = "\t",
-	map = _ => _,
-	mapKey = _ => _,
-	maxLineLength = 80,
-} = {}) {
+export function join (
+	obj,
+	{
+		separator = ",",
+		keyValueSeparator = ":",
+		open = "{",
+		close = "}",
+		indent = "\t",
+		map = _ => _,
+		mapKey = _ => _,
+		maxLineLength = 80,
+	} = {},
+) {
 	let kids = children(obj);
 
 	if (kids instanceof Map || Array.isArray(kids)) {
 		let stringKids;
 		if (kids instanceof Map) {
-			stringKids = Object.entries(obj).map(([key, value]) => `${ mapKey(key) }${keyValueSeparator} ${ map(value) }`);
+			stringKids = Object.entries(obj).map(
+				([key, value]) => `${mapKey(key)}${keyValueSeparator} ${map(value)}`,
+			);
 		}
 		else {
 			stringKids = kids.map(o => map(o));
 		}
 
 		let childrenSingleLine = stringKids.join(separator + " ");
-		return childrenSingleLine.length > indent.length + maxLineLength ?
-				 [
-				`${open}`,
-				`${indent}\t${stringKids.join(`,\n${indent}\t`)}`,
-				`${indent}${close}`,
-				 ].join(`${separator}\n`) :
-				 `${open}${ childrenSingleLine }${close}`;
+		return childrenSingleLine.length > indent.length + maxLineLength
+			? [
+					`${open}`,
+					`${indent}\t${stringKids.join(`,\n${indent}\t`)}`,
+					`${indent}${close}`,
+				].join(`${separator}\n`)
+			: `${open}${childrenSingleLine}${close}`;
 	}
 	else {
 		// Nothing to join
@@ -244,7 +252,7 @@ export function stringify (obj, options = {}) {
 				if (Number.isNaN(obj)) {
 					return "NaN";
 				}
-				// pass-through
+			// pass-through
 			case "string":
 			case "boolean":
 				return JSON.stringify(obj);
@@ -272,17 +280,19 @@ export function stringify (obj, options = {}) {
 				return "{}";
 			case "Array":
 				return join(obj, {
-					open: "[", close: "]",
+					open: "[",
+					close: "]",
 					indent,
 					map: o => callee(o, level + 1),
-				 });
+				});
 		}
 
 		return join(obj, {
-			open: "{", close: "}",
+			open: "{",
+			close: "}",
 			indent,
 			map: o => callee(o, level + 1),
 			mapKey: o => callee(o, level + 1),
-		 });
+		});
 	}
 }

@@ -279,11 +279,7 @@ export default [
 
 			// Enforce the consistent use of double quotes
 			// https://eslint.style/rules/default/quotes
-			"@stylistic/quotes": [
-				1,
-				"double",
-				{ avoidEscape: true, allowTemplateLiterals: true },
-			],
+			"@stylistic/quotes": [1, "double", { avoidEscape: true, allowTemplateLiterals: true }],
 
 			// Require semicolons instead of ASI
 			// https://eslint.style/rules/default/semi
@@ -307,11 +303,7 @@ export default [
 
 			// Enforce whitespace after the `//` or `/*` in a comment
 			// https://eslint.style/rules/default/spaced-comment
-			"@stylistic/spaced-comment": [
-				1,
-				"always",
-				{ block: { exceptions: ["*"] } },
-			],
+			"@stylistic/spaced-comment": [1, "always", { block: { exceptions: ["*"] } }],
 		},
 	},
 ];

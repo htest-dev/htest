@@ -4,9 +4,9 @@
 // https://stackoverflow.com/a/41407246/90826
 let modifiers = {
 	reset: { ansi: "\x1b[0m", css: "" },
-	b:     { ansi: "\x1b[1m", css: "font-weight: bold" },
-	dim:   { ansi: "\x1b[2m", css: "opacity: 0.6" },
-	i:     { ansi: "\x1b[3m", css: "font-style: italic" },
+	b: { ansi: "\x1b[1m", css: "font-weight: bold" },
+	dim: { ansi: "\x1b[2m", css: "opacity: 0.6" },
+	i: { ansi: "\x1b[3m", css: "font-style: italic" },
 };
 
 let hues = ["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"];
@@ -18,7 +18,7 @@ let cssLightOverrides = {
 	white: "whitesmoke",
 };
 
-function getColor (hue, {light, bg, mode} = {}) {
+function getColor (hue, { light, bg, mode } = {}) {
 	if (!hue) {
 		return "";
 	}
@@ -34,20 +34,22 @@ function getColor (hue, {light, bg, mode} = {}) {
 
 	if (mode === "css") {
 		let cssHue = light ? (cssLightOverrides[hue] ?? "light" + hue) : hue;
-		return `${ bg ? "background" : "color" }: ${ cssHue }`;
+		return `${bg ? "background" : "color"}: ${cssHue}`;
 	}
 
 	if (light) {
-		return `\x1b[${ bg ? 10 : 9 }${i}m`;
+		return `\x1b[${bg ? 10 : 9}${i}m`;
 	}
 
-	return `\x1b[${ bg ? 4 : 3 }${i}m`;
+	return `\x1b[${bg ? 4 : 3}${i}m`;
 }
 
 let tags = [
 	Object.keys(modifiers).map(tag => `</?${tag}>`),
-	`<c\\s+(light)?(${ hues.join("|") })>`, `</c>`,
-	`<bg\\s+(light)?(${ hues.join("|") })>`, `</bg>`,
+	`<c\\s+(light)?(${hues.join("|")})>`,
+	`</c>`,
+	`<bg\\s+(light)?(${hues.join("|")})>`,
+	`</bg>`,
 ];
 let tagRegex = RegExp(tags.flat().join("|"), "gi");
 
@@ -56,11 +58,11 @@ function getCSS (active, colorStack, bgStack, mode) {
 	for (let mod of active) {
 		parts.push(modifiers[mod].css);
 	}
-	let fg = getColor(colorStack.at(-1), {mode});
+	let fg = getColor(colorStack.at(-1), { mode });
 	if (fg) {
 		parts.push(fg);
 	}
-	let bg = getColor(bgStack.at(-1), {bg: true, mode});
+	let bg = getColor(bgStack.at(-1), { bg: true, mode });
 	if (bg) {
 		parts.push(bg);
 	}
@@ -106,9 +108,14 @@ export default function format (str) {
 				return "%c";
 			}
 
-			let activeColor = getColor(colorStack.at(-1), {mode});
-			let activeBg = getColor(bgStack.at(-1), {bg: true, mode});
-			return modifiers.reset.ansi + [...active].map(name => modifiers[name].ansi).join("") + activeColor + activeBg;
+			let activeColor = getColor(colorStack.at(-1), { mode });
+			let activeBg = getColor(bgStack.at(-1), { bg: true, mode });
+			return (
+				modifiers.reset.ansi +
+				[...active].map(name => modifiers[name].ansi).join("") +
+				activeColor +
+				activeBg
+			);
 		}
 		else {
 			if (name === "c") {
@@ -127,7 +134,7 @@ export default function format (str) {
 			}
 
 			if (name === "c" || name === "bg") {
-				return getColor(color, {bg: name === "bg", mode});
+				return getColor(color, { bg: name === "bg", mode });
 			}
 
 			return modifiers[name].ansi;

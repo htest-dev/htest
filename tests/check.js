@@ -38,30 +38,42 @@ export default {
 					expect: true,
 				},
 				{
-					args: [{foo: 1, bar: 2}, {foo: 1}],
+					args: [{ foo: 1, bar: 2 }, { foo: 1 }],
 					expect: true,
 				},
 				{
-					args: [{bar: 2}, {foo: 1}],
+					args: [{ bar: 2 }, { foo: 1 }],
 					expect: false,
 				},
 				{
 					name: "Array missing first argument",
-					args: [[1, 2, 3], [, 2, 3]],
+					args: [
+						[1, 2, 3],
+						[, 2, 3],
+					],
 					expect: true,
 				},
 				{
 					name: "Array with fewer elements",
-					args: [[1, 2, 3], [1, 2]],
+					args: [
+						[1, 2, 3],
+						[1, 2],
+					],
 					expect: true,
 				},
 				{
 					name: "Array with fewer elements missing first argument",
-					args: [[1, 2, 3], [, 2]],
+					args: [
+						[1, 2, 3],
+						[, 2],
+					],
 					expect: true,
 				},
 				{
-					args: [[1, 4, 3], [, 2]],
+					args: [
+						[1, 4, 3],
+						[, 2],
+					],
 					expect: false,
 				},
 			],

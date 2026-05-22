@@ -17,7 +17,7 @@ import { getConfig, loadScripts } from "./config.js";
 export default async function cli (options = {}) {
 	let config = await getConfig();
 	if (config) {
-		options = {...config, ...options};
+		options = { ...config, ...options };
 	}
 
 	let argv = process.argv.slice(2);
@@ -42,5 +42,5 @@ export default async function cli (options = {}) {
 		options.path = argv[1];
 	}
 
-	run(location, {env, ...options});
+	run(location, { env, ...options });
 }

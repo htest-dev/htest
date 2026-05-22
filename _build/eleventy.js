@@ -9,8 +9,8 @@ import * as filters from "./filters.js";
 
 export default eleventyConfig => {
 	let data = {
-		"layout": "page.njk",
-		"permalink": "{{ page.filePathStem | replace('README', 'index') }}.html",
+		layout: "page.njk",
+		permalink: "{{ page.filePathStem | replace('README', 'index') }}.html",
 	};
 
 	for (let p in data) {
@@ -19,14 +19,16 @@ export default eleventyConfig => {
 
 	eleventyConfig.setDataDeepMerge(true);
 
-	eleventyConfig.setLibrary("md", markdownIt({
-		html: true,
-	})
-		.disable("code")
-		.use(markdownItAttrs)
-		.use(anchor, {
-			permalink: anchor.permalink.headerLink(),
-		}),
+	eleventyConfig.setLibrary(
+		"md",
+		markdownIt({
+			html: true,
+		})
+			.disable("code")
+			.use(markdownItAttrs)
+			.use(anchor, {
+				permalink: anchor.permalink.headerLink(),
+			}),
 	);
 
 	for (let f in filters) {

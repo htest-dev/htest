@@ -64,6 +64,17 @@ Functions `beforeAll` and `afterAll` define the code to run before and after *al
 
 All of these functions can be either sync or async.
 
+#### Error handling
+
+If a hook throws, the test is **skipped** — not failed.
+
+| Scenario | Test runs? | Cleanup runs? | Result |
+|---|---|---|---|
+| `beforeAll` throws | No | `afterAll` still runs | All tests in group **skipped** |
+| `beforeEach` throws | No | `afterEach` still runs | Test **skipped** |
+| `afterEach` throws | Already ran | — | Test **skipped** |
+| `afterAll` throws | Already ran | — | Test results **unaffected** |
+
 You can define a single `beforeEach` or `afterEach` function on a parent or ancestor and differentiate child tests via [`args`](#args) and [`data`](#data).
 
 ### `data`: Context parameters

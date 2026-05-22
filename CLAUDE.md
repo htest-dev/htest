@@ -56,7 +56,7 @@ src/
 These cascade from parent to child (set in `Test.js` constructor):
 
 ```
-beforeEach  run  afterEach  map  check  getName  args  expect  getExpect  throws  maxTime  maxTimeAsync  skip
+beforeEach  run  afterEach  map  check  getName  getData  args  expect  getExpect  throws  maxTime  maxTimeAsync  skip
 ```
 
 NOT inherited: `beforeAll`, `afterAll`, `name`. `data` inherits via prototype chain (child sees parent's data; own properties shadow parent's).

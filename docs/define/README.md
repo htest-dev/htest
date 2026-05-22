@@ -23,6 +23,7 @@ You can access the inherited property via `this.parent` when re-defining either 
 | [`beforeAll`](#setup-teardown) | Function | Code to run before all tests in the group. |
 | [`afterAll`](#setup-teardown) | Function | Code to run after all tests in the group. |
 | [`data`](#data) | Object | Data that will be accessible to the running function as `this.data`. |
+| [`getData`](#data) | Function | A function that generates data dynamically. |
 | [`name`](#name) | String or Function | A string that describes the test. |
 | [`getName`](#name) | Function | A function that generates the test name dynamically. |
 | [`description`](#description) | String | A longer description of the test or group of tests. |
@@ -71,6 +72,29 @@ You can define a single `beforeEach` or `afterEach` function on a parent or ance
 A test’s data is merged with its parent’s data, so you can define common data at a higher level and override it where needed.
 It is useful for differentiating the behavior of `run()` across groups of tests without having to redefine it or pass repetitive arguments.
 
+`data` can also be a *data generator* function.
+It is called with the same context and arguments as `run()` and returns an object whose properties are merged onto `this.data`.
+You can also explicitly provide a function, via `getData`.
+In fact, if `data` is a function, it gets rewritten as `getData` internally.
+
+If both `data` (as a literal object) and `getData` are defined, `data` wins.
+
+`getData` is useful for providing fresh per-test data without `beforeEach()`:
+
+```js
+{
+    getData () { return { items: [] }; },
+    run () {
+        this.data.items.push(1);
+        return this.data.items.length;
+    },
+    tests: [
+        { expect: 1 },
+        { expect: 1 },  // Each test gets its own fresh array
+    ],
+}
+```
+
 ## Describing the test
 
 ### Names and name generators (`name` and `getName()`) { #name }
@@ -90,6 +114,9 @@ Name generators are useful for providing a default name for tests, that you can 
 You may find `this.level` useful in the name generator, as it tells you how deep in the hierarchy the test is, allowing you to provide depth-sensitive name patterns.
 
 If no name is provided, it defaults to the first argument passed to `run`, if any.
+
+If `getName()` throws an error (e.g. by accessing `this.run` on a group with no `run`), the error is caught and the name falls through to its default.
+This allows defining a `getName` that only works in certain contexts without crashing the test tree.
 
 ### Description (`description`) { #description }
 
@@ -117,6 +144,8 @@ The expected result can also be generated dynamically via `getExpect`.
 It is called with the same context and arguments as `run()` and returns the expected result.
 
 If both `expect` and `getExpect` are defined, `expect` wins.
+
+If `getExpect()` throws an error, the error is caught and `expect` falls through to its default (`args[0]`).
 
 ### Error-based criteria (`throws`) { #throws }
 

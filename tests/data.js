@@ -49,5 +49,98 @@ export default {
 				},
 			],
 		},
+		{
+			name: "getData",
+			tests: [
+				{
+					name: "Called with test args",
+					getData (x) {
+						return { doubled: x * 2 };
+					},
+					run () {
+						return this.data.doubled;
+					},
+					tests: [{ arg: 5, expect: 10 }],
+				},
+				{
+					name: "Fresh data per test",
+					getData () {
+						return { items: [] };
+					},
+					run () {
+						this.data.items.push("foo");
+						return this.data.items.length;
+					},
+					tests: [{ expect: 1 }, { expect: 1 }],
+				},
+				{
+					name: "Function shorthand",
+					data () {
+						return { x: 42 };
+					},
+					run () {
+						return this.data.x;
+					},
+					tests: [{ expect: 42 }],
+				},
+				{
+					name: "Literal data wins over inherited getData",
+					getData () {
+						return { x: "generated" };
+					},
+					tests: [
+						{
+							data: { x: "literal" },
+							run () {
+								return this.data.x;
+							},
+							expect: "literal",
+						},
+					],
+				},
+				{
+					name: "Merges with parent data",
+					data: { parent: 1 },
+					tests: [
+						{
+							getData () {
+								return { child: 2 };
+							},
+							run () {
+								return {
+									parent: this.data.parent,
+									child: this.data.child,
+								};
+							},
+							expect: { parent: 1, child: 2 },
+						},
+					],
+				},
+				{
+					name: "Preserves accessor descriptors",
+					getData () {
+						return {
+							get items () {
+								return [];
+							},
+						};
+					},
+					run () {
+						return this.data.items !== this.data.items;
+					},
+					expect: true,
+				},
+				{
+					name: "Getter failure falls through to empty data",
+					getData () {
+						throw new Error("Fail");
+					},
+					run () {
+						return this.data;
+					},
+					expect: {},
+				},
+			],
+		},
 	],
 };

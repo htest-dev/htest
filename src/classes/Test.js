@@ -23,6 +23,11 @@ export default class Test {
 
 		Object.assign(this, test);
 
+		if (typeof this.data === "function") {
+			this.getData = this.data;
+			this.data = {};
+		}
+
 		this.data = Object.create(
 			this.parent?.data ?? null,
 			Object.getOwnPropertyDescriptors(this.data),
@@ -31,6 +36,7 @@ export default class Test {
 
 		if (typeof this.name === "function") {
 			this.getName = this.name;
+			delete this.name;
 		}
 
 		// Inherit properties from parent
@@ -43,6 +49,7 @@ export default class Test {
 				"map",
 				"check",
 				"getName",
+				"getData",
 				"args",
 				"expect",
 				"getExpect",
@@ -81,11 +88,23 @@ export default class Test {
 			this.args = [];
 		}
 
+		if (this.getData && Object.keys(this.data).length === 0) {
+			try {
+				let data = this.getData.apply(this, this.args);
+				Object.defineProperties(this.data, Object.getOwnPropertyDescriptors(data));
+			}
+			catch {}
+		}
+
 		if (!this.name) {
 			if (this.getName) {
-				this.name = this.getName.apply(this, this.args);
+				try {
+					this.name = this.getName.apply(this, this.args);
+				}
+				catch {}
 			}
-			else if (this.isTest) {
+
+			if (!this.name && this.isTest) {
 				this.name = this.args.length > 0 ? stringify(this.args[0]) : "(No args)";
 			}
 		}
@@ -98,9 +117,13 @@ export default class Test {
 
 		if (!("expect" in this)) {
 			if (this.getExpect) {
-				this.expect = this.getExpect.apply(this, this.args);
+				try {
+					this.expect = this.getExpect.apply(this, this.args);
+				}
+				catch {}
 			}
-			else {
+
+			if (!("expect" in this)) {
 				this.expect = this.args[0];
 			}
 		}

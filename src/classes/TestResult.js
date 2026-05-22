@@ -121,6 +121,11 @@ export default class TestResult extends BubblingEventTarget {
 					}
 				}
 				catch (e) {
+					// Duck-type assertion errors (Node assert, Chai, etc.) — use their actual/expected for diffs
+					if ("actual" in e) {
+						this.actual = e.actual;
+						this.test.expect = e.expected;
+					}
 					this.error = e;
 				}
 			}
@@ -374,7 +379,8 @@ export default class TestResult extends BubblingEventTarget {
 		}
 
 		if (!ret.pass) {
-			if (this.error) {
+			// Assertion errors have `.actual` — show diff instead of raw error dump
+			if (this.error && !("actual" in this.error)) {
 				ret.details.push(`Got error ${this.error}
 ${this.error.stack}`);
 			}

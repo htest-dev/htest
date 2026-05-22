@@ -41,7 +41,7 @@ export default class TestResult extends BubblingEventTarget {
 			let originalTarget = e.detail?.target ?? e.target;
 
 			if (originalTarget.test.isTest) {
-				if (originalTarget.test.skip) {
+				if (originalTarget.skipped) {
 					this.stats.skipped++;
 				}
 				else if (originalTarget.pass) {
@@ -83,40 +83,77 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
+		let error;
+
 		this.messages = await interceptConsole(async () => {
 			if (!this.parent) {
 				// We are running the test in isolation, so we need to run beforeAll (if it exists)
-				await this.test.beforeAll?.();
+				try {
+					await this.test.beforeAll?.();
+				}
+				catch (e) {
+					e.source = "beforeAll";
+					this.error = error = e;
+				}
+			}
+
+			if (!error) {
+				try {
+					await this.test.beforeEach?.apply(this.test, this.test.args);
+				}
+				catch (e) {
+					e.source = "beforeEach";
+					this.error = error = e;
+				}
+			}
+
+			if (!error) {
+				try {
+					let start = performance.now();
+					this.actual = this.test.run
+						? this.test.run.apply(this.test, this.test.args)
+						: this.test.args[0];
+					this.timeTaken = performance.now() - start;
+
+					if (this.actual instanceof Promise) {
+						this.actual = await this.actual;
+						this.timeTakenAsync = performance.now() - start;
+					}
+				}
+				catch (e) {
+					this.error = e;
+				}
 			}
 
 			try {
-				await this.test.beforeEach?.apply(this.test, this.test.args);
-
-				let start = performance.now();
-				this.actual = this.test.run
-					? this.test.run.apply(this.test, this.test.args)
-					: this.test.args[0];
-				this.timeTaken = performance.now() - start;
-
-				if (this.actual instanceof Promise) {
-					this.actual = await this.actual;
-					this.timeTakenAsync = performance.now() - start;
-				}
+				await this.test.afterEach?.apply(this.test, this.test.args);
 			}
 			catch (e) {
-				this.error = e;
+				e.source = "afterEach";
+				this.error ??= e;
+				error ??= e;
 			}
-			finally {
-				await this.test.afterEach?.apply(this.test, this.test.args);
 
-				if (!this.parent) {
-					// We are running the test in isolation, so we need to run afterAll
+			if (!this.parent) {
+				// We are running the test in isolation, so we need to run afterAll
+				try {
 					await this.test.afterAll?.();
+				}
+				catch (e) {
+					e.source = "afterAll";
+					this.error ??= e;
+					error ??= e;
 				}
 			}
 		});
 
-		this.evaluate();
+		if (error) {
+			this.details = [`${this.error.source}: ${this.error.message}`];
+			this.skip();
+		}
+		else {
+			this.evaluate();
+		}
 	}
 
 	static STATS_AVAILABLE = [
@@ -170,10 +207,29 @@ export default class TestResult extends BubblingEventTarget {
 		this.tests = this.test.tests?.map(t => new TestResult(t, this, childOptions));
 
 		delay(1)
-			.then(() => this.test.beforeAll?.())
-			.then(() => {
+			.then(async () => {
+				let error = this.parent?.error;
+
+				if (!error) {
+					try {
+						await this.test.beforeAll?.();
+					}
+					catch (e) {
+						e.source = "beforeAll";
+						error = e;
+					}
+				}
+
+				if (error) {
+					this.error = error;
+				}
+
 				if (this.test.isTest) {
 					if (this.test.skip) {
+						this.skip();
+					}
+					else if (error) {
+						this.details = [`${error.source}: ${error.message}`];
 						this.skip();
 					}
 					else {
@@ -184,7 +240,14 @@ export default class TestResult extends BubblingEventTarget {
 				return Promise.allSettled((this.tests ?? []).map(test => test.runAll()));
 			})
 			.then(() => this.finished)
-			.finally(() => this.test.afterAll?.());
+			.finally(async () => {
+				if (!this.parent?.error) {
+					try {
+						await this.test.afterAll?.();
+					}
+					catch {}
+				}
+			});
 
 		return this;
 	}
@@ -473,7 +536,12 @@ ${this.error.stack}`);
 		if (this.test.isGroup) {
 			ret.push(this.getSummary(o));
 		}
-		else if (this.pass === false || this.messages?.length > 0 || o?.verbose) {
+		else if (
+			this.pass === false ||
+			(this.skipped && this.error) ||
+			this.messages?.length > 0 ||
+			o?.verbose
+		) {
 			ret.push(this.getResult(o));
 		}
 

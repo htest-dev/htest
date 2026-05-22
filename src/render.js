@@ -87,7 +87,7 @@ export default function render (test) {
 				cell.textContent = output(target.actual);
 			}
 			tr.classList.add(target.pass ? "pass" : "fail");
-			if (target.test.skip) {
+			if (target.skipped) {
 				tr.classList.add("skipped");
 			}
 			else if (!target.pass) {

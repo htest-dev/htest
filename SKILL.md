@@ -152,8 +152,19 @@ export default {
 
 | Property                   | Description                                                                                    |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `beforeEach` / `afterEach` | Run before/after each test. Receive the same args as `run` (spread from `args`); `this` is the Test instance, so `this.data` works as in `run`. Inherited. `afterEach` runs even if the test throws. Sync or async |
+| `beforeEach` / `afterEach` | Run before/after each test. Receive no parameters — access state via `this.data`, `this.arg`, etc. Inherited. Sync or async |
 | `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Receive no parameters — access state via `this.data`, `this.arg`. **Not inherited** |
+
+#### Hook errors
+
+If a hook throws, the test is **skipped** (not failed). Hooks are infrastructure — if setup fails, the test result would be meaningless; if cleanup fails, the test environment is unreliable. A hook error never fulfills `throws`.
+
+| Scenario | Test runs? | Cleanup runs? | Result |
+|---|---|---|---|
+| `beforeAll` throws | No | `afterAll` still runs | All tests in group **skipped** |
+| `beforeEach` throws | No | `afterEach` still runs | Test **skipped** |
+| `afterEach` throws | Already ran | — | Test **skipped** |
+| `afterAll` throws | Already ran | — | Test results **unaffected** |
 
 ## `this` Inside `run`
 

@@ -77,11 +77,23 @@ export default function render (test) {
 
 		if (target.test.isTest) {
 			let tr = testRows.get(target.test);
-			let error = target.error;
+			let { error } = target;
 			let cell = tr.cells[1];
-			if (error) {
-				cell.dataset.errorStack = error.stack;
-				cell.textContent = error;
+			let messages = Object.entries(error.hooks).map(([name, e]) => `${ name }: ${ e.message }`);
+			let stacks = Object.values(error.hooks).map(e => e.stack);
+
+			if (error.run) {
+				messages.push(`run: ${ error.run.message }`);
+				stacks.push(error.run.stack);
+			}
+			if (error.evaluation) {
+				messages.push(error.evaluation.message);
+				stacks.push(error.evaluation.stack);
+			}
+
+			if (messages.length) {
+				cell.textContent = messages.join("; ");
+				cell.dataset.errorStack = stacks.join("\n\n");
 			}
 			else {
 				cell.textContent = output(target.actual);

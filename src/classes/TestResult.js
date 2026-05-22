@@ -10,6 +10,7 @@ import { formatDiff } from "../util/format-diff.js";
 export default class TestResult extends BubblingEventTarget {
 	pass;
 	details = [];
+	error = { hooks: {} };
 	timeTaken = 0;
 	stats = {};
 
@@ -86,32 +87,55 @@ export default class TestResult extends BubblingEventTarget {
 		this.messages = await interceptConsole(async () => {
 			if (!this.parent) {
 				// We are running the test in isolation, so we need to run beforeAll (if it exists)
-				await this.test.beforeAll?.();
-			}
-
-			try {
-				await this.test.beforeEach?.apply(this.test, this.test.args);
-
-				let start = performance.now();
-				this.actual = this.test.run
-					? this.test.run.apply(this.test, this.test.args)
-					: this.test.args[0];
-				this.timeTaken = performance.now() - start;
-
-				if (this.actual instanceof Promise) {
-					this.actual = await this.actual;
-					this.timeTakenAsync = performance.now() - start;
+				try {
+					await this.test.beforeAll?.();
+				}
+				catch (e) {
+					this.error.hooks.beforeAll = e;
 				}
 			}
-			catch (e) {
-				this.error = e;
-			}
-			finally {
-				await this.test.afterEach?.apply(this.test, this.test.args);
 
-				if (!this.parent) {
-					// We are running the test in isolation, so we need to run afterAll
+			if (!this.error.hooks.beforeAll) {
+				try {
+					await this.test.beforeEach?.apply(this.test, this.test.args);
+				}
+				catch (e) {
+					this.error.hooks.beforeEach = e;
+				}
+
+				if (!this.error.hooks.beforeEach) {
+					try {
+						let start = performance.now();
+						this.actual = this.test.run
+							? this.test.run.apply(this.test, this.test.args)
+							: this.test.args[0];
+						this.timeTaken = performance.now() - start;
+
+						if (this.actual instanceof Promise) {
+							this.actual = await this.actual;
+							this.timeTakenAsync = performance.now() - start;
+						}
+					}
+					catch (e) {
+						this.error.run = e;
+					}
+				}
+
+				try {
+					await this.test.afterEach?.apply(this.test, this.test.args);
+				}
+				catch (e) {
+					this.error.hooks.afterEach = e;
+				}
+			}
+
+			if (!this.parent) {
+				// We are running the test in isolation, so we need to run afterAll
+				try {
 					await this.test.afterAll?.();
+				}
+				catch (e) {
+					this.error.hooks.afterAll = e;
 				}
 			}
 		});
@@ -194,8 +218,13 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluate () {
 		let test = this.test;
+		let { hooks: errors } = this.error;
 
-		if (test.throws !== undefined) {
+		if (errors.beforeAll || errors.beforeEach) {
+			this.pass = false;
+			this.details = [];
+		}
+		else if (test.throws !== undefined) {
 			Object.assign(this, this.evaluateThrown());
 		}
 		else if (test.maxTime || test.maxTimeAsync) {
@@ -203,6 +232,11 @@ export default class TestResult extends BubblingEventTarget {
 		}
 		else {
 			Object.assign(this, this.evaluateResult());
+		}
+
+		for (let [source, error] of Object.entries(errors)) {
+			this.pass = false;
+			this.details.push(`${source} error: ${error}\n${error.stack}`);
 		}
 
 		this.dispatchEvent(new Event("done", { bubbles: true }));
@@ -222,32 +256,31 @@ export default class TestResult extends BubblingEventTarget {
 	 */
 	evaluateThrown () {
 		let test = this.test;
-		let ret = { pass: !!this.error, details: [] };
+		let error = this.error.run;
+		let ret = { pass: !!error, details: [] };
 
 		// We may have more picky criteria for the error
 		if (ret.pass) {
 			if (test.throws === false) {
 				// We expect no error, but got one
 				ret.pass = false;
-				ret.details.push(`Expected no error, but got ${this.error}`);
+				ret.details.push(`Expected no error, but got ${error}`);
 			}
 			else if (test.throws.prototype instanceof Error) {
 				// We want a specific subclass, e.g. TypeError
-				ret.pass &&= this.error instanceof test.throws;
+				ret.pass &&= error instanceof test.throws;
 
 				if (!ret.pass) {
 					ret.details.push(
-						`Got error ${this.error}, but was not a subclass of ${test.throws.name}`,
+						`Got error ${error}, but was not a subclass of ${test.throws.name}`,
 					);
 				}
 			}
 			else if (typeof test.throws === "function") {
-				ret.pass &&= test.throws(this.error);
+				ret.pass &&= test.throws(error);
 
 				if (!ret.pass) {
-					ret.details.push(
-						`Got error ${this.error}, but didn’t pass test ${test.throws}`,
-					);
+					ret.details.push(`Got error ${error}, but didn’t pass test ${test.throws}`);
 				}
 			}
 		}
@@ -287,13 +320,13 @@ export default class TestResult extends BubblingEventTarget {
 					ret.pass = test.check(this.mapped.actual, this.mapped.expect);
 				}
 				catch (e) {
-					this.error = new Error(
+					this.error.evaluation = new Error(
 						`check() failed (working with mapped values). ${e.message}`,
 					);
 				}
 			}
 			catch (e) {
-				this.error = new Error(`map() failed. ${e.message}`);
+				this.error.evaluation = new Error(`map() failed. ${e.message}`);
 			}
 		}
 		else {
@@ -301,19 +334,21 @@ export default class TestResult extends BubblingEventTarget {
 				ret.pass = test.check(this.actual, test.expect);
 			}
 			catch (e) {
-				this.error = new Error(`check() failed. ${e.message}`);
+				this.error.evaluation = new Error(`check() failed. ${e.message}`);
 			}
 		}
 
-		// If `map()` or `check()` errors, consider the test failed
-		if (this.error) {
+		// If `run()`, `map()`, or `check()` errors, consider the test failed
+		let error = this.error.run || this.error.evaluation;
+
+		if (error) {
 			ret.pass = false;
 		}
 
 		if (!ret.pass) {
-			if (this.error) {
-				ret.details.push(`Got error ${this.error}
-${this.error.stack}`);
+			if (error) {
+				ret.details.push(`Got error ${error}
+${error.stack}`);
 			}
 			else {
 				let actual = this.mapped?.actual ?? this.actual;

@@ -151,8 +151,8 @@ export default {
 
 | Property                   | Description                                                                                    |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `beforeEach` / `afterEach` | Run before/after each test. Receive the same args as `run` (spread from `args`); `this` is the Test instance, so `this.data` works as in `run`. Inherited. `afterEach` runs even if the test throws. Sync or async |
-| `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Receive no parameters — access state via `this.data`, `this.arg`. **Not inherited** |
+| `beforeEach` / `afterEach` | Run before/after each test. Receive the same args as `run` (spread from `args`); `this` is the Test instance, so `this.data` works as in `run`. Inherited. `afterEach` runs even if the test or `beforeEach` throws. Sync or async. Hook errors are caught in `error.hooks` (e.g., `error.hooks.beforeEach`) — they don't crash the runner or fulfill `throws` |
+| `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Receive no parameters — access state via `this.data`. **Not inherited**. In isolation, `beforeAll` errors skip the test body and `afterEach`, but `afterAll` still runs for cleanup |
 
 ## `this` Inside `run`
 

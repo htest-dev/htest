@@ -1,6 +1,23 @@
 import * as check from "../check.js";
 import { stringify } from "../util.js";
 
+const INHERITED_PROPS = [
+	"beforeEach",
+	"run",
+	"afterEach",
+	"map",
+	"check",
+	"getName",
+	"getData",
+	"args",
+	"expect",
+	"getExpect",
+	"throws",
+	"maxTime",
+	"maxTimeAsync",
+	"skip",
+];
+
 /**
  * Represents a single test or a group of tests
  */
@@ -42,22 +59,7 @@ export default class Test {
 		// Inherit properties from parent
 		// This works recursively because the parent constructor runs before its children
 		if (this.parent) {
-			for (let prop of [
-				"beforeEach",
-				"run",
-				"afterEach",
-				"map",
-				"check",
-				"getName",
-				"getData",
-				"args",
-				"expect",
-				"getExpect",
-				"throws",
-				"maxTime",
-				"maxTimeAsync",
-				"skip",
-			]) {
+			for (let prop of INHERITED_PROPS) {
 				if (!(prop in this) && prop in this.parent) {
 					this[prop] = this.parent[prop];
 				}

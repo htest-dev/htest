@@ -98,5 +98,116 @@ export default {
 				},
 			],
 		},
+		{
+			name: "name accessor",
+			run () {
+				return this.name;
+			},
+			tests: [
+				{
+					name: "Called with test args via this.args",
+					tests: [
+						{
+							get name () {
+								return "Test " + this.args[0];
+							},
+							arg: "foo",
+							expect: "Test foo",
+						},
+					],
+				},
+				{
+					name: "Inherited from parent accessor descriptor",
+					tests: [
+						{
+							get name () {
+								return "Test " + this.args[0];
+							},
+							tests: [{ arg: "bar", expect: "Test bar" }],
+						},
+					],
+				},
+				{
+					name: "Explicit name literal wins over inherited accessor",
+					tests: [
+						{
+							get name () {
+								return "generated";
+							},
+							tests: [{ name: "explicit", expect: "explicit" }],
+						},
+					],
+				},
+				{
+					name: "Failure falls through to default name (args[0])",
+					tests: [
+						{
+							get name () {
+								throw new Error();
+							},
+							tests: [{ arg: 42, expect: "42" }],
+						},
+					],
+				},
+				{
+					name: "Accessor wins over getName when both defined",
+					tests: [
+						{
+							get name () {
+								return "from accessor";
+							},
+							getName () {
+								return "from getName";
+							},
+							tests: [{ arg: "x", expect: "from accessor" }],
+						},
+					],
+				},
+			],
+		},
+		{
+			name: "expect accessor",
+			tests: [
+				{
+					name: "Called with test args via this.args",
+					run (x) {
+						return x * 2;
+					},
+					tests: [
+						{
+							get expect () {
+								return this.args[0] * 2;
+							},
+							arg: 5,
+						},
+					],
+				},
+				{
+					name: "Inherited from parent accessor descriptor",
+					run (x) {
+						return x * 2;
+					},
+					tests: [
+						{
+							get expect () {
+								return this.args[0] * 2;
+							},
+							tests: [{ arg: 7 }],
+						},
+					],
+				},
+				{
+					name: "Failure falls through to default expect (args[0])",
+					tests: [
+						{
+							get expect () {
+								throw new Error();
+							},
+							tests: [{ args: ["foo", "bar"], expect: "foo" }],
+						},
+					],
+				},
+			],
+		},
 	],
 };

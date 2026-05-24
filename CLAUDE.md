@@ -59,7 +59,9 @@ These cascade from parent to child (set in `Test.js` constructor):
 beforeEach  run  afterEach  map  check  getName  getData  args  expect  getExpect  throws  maxTime  maxTimeAsync  skip
 ```
 
-NOT inherited: `beforeAll`, `afterAll`, `name`. `data` inherits via prototype chain (child sees parent's data; own properties shadow parent's).
+NOT inherited as values: `beforeAll`, `afterAll`, `name`, `data`. However, **accessor descriptors** for `name` and `data` (e.g. `get name () {}`, `get data () {}`) ARE inherited — children get the same getter, invoked with their own `this`. `data` (literal) inherits via prototype chain (child sees parent's data; own properties shadow parent's).
+
+For lazy `name` / `data` / `expect`, you can use either the old `getName` / `getData` / `getExpect` methods (eager, evaluated at construction) or the newer accessor syntax `get name () {...}` / `get data () {...}` / `get expect () {...}` (lazy, evaluated on first access, cached). Both work; accessors win if both are defined on the same property.
 
 ## Self-hosted testing
 

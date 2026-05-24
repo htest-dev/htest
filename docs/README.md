@@ -149,7 +149,7 @@ export default {
 		}
 
 		return `should return ${this.expect} when the value is ${this.args[0]}`;
-	}
+	},
 	tests: [
 		{
 			data: {

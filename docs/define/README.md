@@ -24,14 +24,14 @@ Tests at the same nesting level run **in parallel**, so don't rely on execution 
 | [`afterEach`](#setup-teardown) | Function | Code to run after each test. |
 | [`beforeAll`](#setup-teardown) | Function | Code to run before all tests in the group. |
 | [`afterAll`](#setup-teardown) | Function | Code to run after all tests in the group. |
-| [`data`](#data) | Object | Data that will be accessible to the running function as `this.data`. |
-| [`getData`](#data) | Function | A function that generates data dynamically. |
-| [`name`](#name) | String or Function | A string that describes the test. |
-| [`getName`](#name) | Function | A function that generates the test name dynamically. |
+| [`data`](#data) | Object, Function, or Accessor | Data that will be accessible to the running function as `this.data`. |
+| [`getData`](#data) | Function | Legacy: a function that generates data dynamically (eager). Prefer `get data () { ... }`. |
+| [`name`](#name) | String, Function, or Accessor | A string that describes the test. |
+| [`getName`](#name) | Function | Legacy: a function that generates the test name dynamically (eager). Prefer `get name () { ... }`. |
 | [`description`](#description) | String | A longer description of the test or group of tests. |
 | [`id`](#id) | String | A unique identifier for the test. |
-| [`expect`](#expect) | Any | The expected result. |
-| [`getExpect`](#expect) | Function | A function that generates the expected result dynamically. |
+| [`expect`](#expect) | Any or Accessor | The expected result. |
+| [`getExpect`](#expect) | Function | Legacy: a function that generates the expected result dynamically (eager). Prefer `get expect () { ... }`. |
 | [`throws`](#throws) | Boolean, Error subclass, or Function | Whether an error is expected to be thrown. |
 | [`maxTime`](#maxtime) | Number | The maximum time (in ms) that the test should take to run. |
 | [`maxTimeAsync`](#maxtime) | Number | The maximum time (in ms) that the test should take to resolve. |
@@ -104,18 +104,11 @@ You can define a single `beforeEach` or `afterEach` on a parent or ancestor and 
 A child’s data inherits from its parent’s, so you can define common data at a higher level and override it where needed.
 It is useful for differentiating the behavior of `run()` across groups of tests without having to redefine it or pass repetitive arguments.
 
-`data` can also be a *data generator* function.
-It is called with the same context and arguments as `run()` and returns an object whose properties are merged onto `this.data`.
-You can also explicitly provide a function, via `getData`.
-In fact, if `data` is a function, it gets rewritten as `getData` internally.
-
-If both `data` (as a literal object) and `getData` are defined, `data` wins.
-
-`getData` is useful for providing fresh per-test data without `beforeEach()`:
+`data` can also be a getter or function shorthand that generates fresh data per test:
 
 ```js
 {
-    getData () { return { items: [] }; },
+    get data () { return { items: [] }; },
     run () {
         this.data.items.push(1);
         return this.data.items.length;
@@ -127,6 +120,10 @@ If both `data` (as a literal object) and `getData` are defined, `data` wins.
 }
 ```
 
+The function shorthand `data () { ... }` is equivalent to `get data () { ... }` — both run with `this` bound to the Test instance, so you can read `this.args`, `this.parent.data`, etc. Returned objects are wired into the parent's data prototype chain. Accessor descriptors are inherited from parent to child, but literal data values are not (children see parent data through the chain). If the getter throws, `this.data` falls through to an empty object.
+
+You can also explicitly provide a data generator function via the legacy `getData` property. It is called with the same context and arguments as `run()` and the returned object's properties are merged into `this.data` eagerly at construction time. `get data ()` is preferred (lazy and idiomatic JS), but `getData` remains supported. If both are defined, the accessor wins.
+
 ## Describing the test
 
 ### Names and name generators (`name` and `getName()`) { #name }
@@ -134,21 +131,28 @@ If both `data` (as a literal object) and `getData` are defined, `data` wins.
 `name` is a string that describes the test.
 It is optional, but recommended, as it makes it easier to identify the test in the results.
 
-`name` can also be a *name generator* function.
-It is called with the same context and arguments as `run()` and returns the name as a string.
-You can also explicitly provide a function, via `getName`.
-This can be useful if you want to specify a name for the root of tests, as well as a name generator for child tests.
-In fact, if `name` is a function, it gets rewritten as `getName` internally.
+`name` can also be a getter or function shorthand that generates the name lazily:
 
-Single names are not inherited, but name generator functions are.
+```js
+{
+    get name () { return "Test " + this.args[0]; },
+    tests: [{ arg: "foo" }],  // → name: "Test foo"
+}
+```
+
+The function shorthand `name () { ... }` is equivalent to `get name () { ... }` — both run with `this` bound to the Test instance.
+
+Literal `name` values are not inherited, but accessor descriptors are. This means a parent can define a `get name ()` and every child inherits the same generator (invoked with its own `this`). Children with an explicit `name` literal override the inherited accessor.
+
+You can also explicitly provide a name generator function via the legacy `getName` property. It is called with the same context and arguments as `run()` and the returned string is used as the name (eagerly, at construction). `get name ()` is preferred (lazy and idiomatic JS), but `getName` remains supported. If both are defined, the accessor wins.
 
 Name generators are useful for providing a default name for tests, that you can override on a case by case basis via `name`.
 You may find `this.level` useful in the name generator, as it tells you how deep in the hierarchy the test is, allowing you to provide depth-sensitive name patterns.
 
 If no name is provided, it defaults to the first argument passed to `run`, if any.
 
-If `getName()` throws an error (e.g. by accessing `this.run` on a group with no `run`), the error is caught and the name falls through to its default.
-This allows defining a `getName` that only works in certain contexts without crashing the test tree.
+If the `name` getter throws an error (e.g. by accessing `this.run` on a group with no `run`), the error is caught and the name falls through to its default.
+This allows defining a `name` getter that only works in certain contexts without crashing the test tree.
 
 ### Description (`description`) { #description }
 
@@ -172,12 +176,22 @@ If you specify multiple criteria, nothing will break, but you will get a warning
 `expect` defines the expected result, so you'll be using it the most.
 If `expect` is *not defined*, it defaults to the first argument passed to `run()`, i.e. `this.args[0]`.
 
-The expected result can also be generated dynamically via `getExpect`.
-It is called with the same context and arguments as `run()` and returns the expected result.
+The expected result can also be generated dynamically with a getter:
 
-If both `expect` and `getExpect` are defined, `expect` wins.
+```js
+{
+    run: double,
+    tests: [
+        { arg: 5, get expect () { return this.args[0] * 2; } },
+    ],
+}
+```
 
-If `getExpect()` throws an error, the error is caught and `expect` falls through to its default (`args[0]`).
+The getter runs with `this` bound to the Test instance, so you can read `this.args` and `this.data`. The result is cached on first access. Accessor descriptors are inherited from parent to child, just like literal values.
+
+You can also explicitly provide a generator function via the legacy `getExpect` property. It is called with the same context and arguments as `run()` and the returned value is used as `expect` (eagerly, at construction). `get expect ()` is preferred (lazy and idiomatic JS), but `getExpect` remains supported. If both are defined, the accessor wins.
+
+If the `expect` getter throws an error, the error is caught and `expect` falls through to its default (`args[0]`).
 
 ### Error-based criteria (`throws`) { #throws }
 

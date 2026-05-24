@@ -142,5 +142,114 @@ export default {
 				},
 			],
 		},
+		{
+			name: "data accessor",
+			tests: [
+				{
+					name: "Called with this.args",
+					tests: [
+						{
+							get data () {
+								return { doubled: this.args[0] * 2 };
+							},
+							run () {
+								return this.data.doubled;
+							},
+							arg: 5,
+							expect: 10,
+						},
+					],
+				},
+				{
+					name: "Inherited via accessor descriptor",
+					run () {
+						return this.data.x;
+					},
+					tests: [
+						{
+							get data () {
+								return { x: 7 };
+							},
+							tests: [{ expect: 7 }],
+						},
+					],
+				},
+				{
+					name: "Fresh data per test (accessor)",
+					run () {
+						this.data.items.push("foo");
+						return this.data.items.length;
+					},
+					tests: [
+						{
+							get data () {
+								return { items: [] };
+							},
+							tests: [{ expect: 1 }, { expect: 1 }],
+						},
+					],
+				},
+				{
+					name: "Literal data wins over inherited data accessor",
+					run () {
+						return this.data.x;
+					},
+					tests: [
+						{
+							get data () {
+								return { x: "generated" };
+							},
+							tests: [{ data: { x: "literal" }, expect: "literal" }],
+						},
+					],
+				},
+				{
+					name: "Merges with parent data",
+					data: { parent: 1 },
+					run () {
+						return { parent: this.data.parent, child: this.data.child };
+					},
+					tests: [
+						{
+							get data () {
+								return { child: 2 };
+							},
+							expect: { parent: 1, child: 2 },
+						},
+					],
+				},
+				{
+					name: "Getter failure falls through to empty data",
+					run () {
+						return Object.keys(this.data).length;
+					},
+					tests: [
+						{
+							get data () {
+								throw new Error("Fail");
+							},
+							expect: 0,
+						},
+					],
+				},
+				{
+					name: "Accessor wins over getData when both defined",
+					run () {
+						return this.data.x;
+					},
+					tests: [
+						{
+							get data () {
+								return { x: "from accessor" };
+							},
+							getData () {
+								return { x: "from getData" };
+							},
+							tests: [{ expect: "from accessor" }],
+						},
+					],
+				},
+			],
+		},
 	],
 };

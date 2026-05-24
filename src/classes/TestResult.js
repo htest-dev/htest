@@ -124,7 +124,12 @@ export default class TestResult extends BubblingEventTarget {
 					// Duck-type assertion errors (Node assert, Chai, etc.) — use their actual/expected for diffs
 					if ("actual" in e) {
 						this.actual = e.actual;
-						this.test.expect = e.expected;
+						Object.defineProperty(this.test, "expect", {
+							value: e.expected,
+							writable: true,
+							configurable: true,
+							enumerable: true,
+						});
 					}
 					this.error = e;
 				}

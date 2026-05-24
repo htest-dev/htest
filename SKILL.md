@@ -148,14 +148,27 @@ export default {
 };
 ```
 
-### Lifecycle
+### Lifecycle Hooks
 
 | Property                   | Description                                                                                    |
 | -------------------------- | ---------------------------------------------------------------------------------------------- |
-| `beforeEach` / `afterEach` | Run before/after each test. Receive no parameters — access state via `this.data`, `this.arg`, etc. Inherited. Sync or async |
-| `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Receive no parameters — access state via `this.data`, `this.arg`. **Not inherited** |
+| `beforeEach` / `afterEach` | Run before/after each test. Called like `run` — same `this`, same arguments. Inherited. Sync or async |
+| `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Called with no arguments. **Not inherited** |
 
-#### Hook errors
+A child that defines its own `beforeEach`/`afterEach` **overrides** the parent's — they are not chained automatically.
+
+To invoke the parent's hook from a child override, call `this.parent.beforeEach()` (or whichever hook). You control where the parent's logic runs — before, after, or in the middle of the child's:
+
+```js
+{
+	beforeEach () {
+		this.parent.beforeEach();   // parent's setup first
+		this.data.extra = "child";  // then child-specific setup
+	},
+}
+```
+
+#### Lifecycle hook errors
 
 If a hook throws, the test is **skipped** (not failed). Hooks are infrastructure — if setup fails, the test result would be meaningless; if cleanup fails, the test environment is unreliable. A hook error never fulfills `throws`.
 

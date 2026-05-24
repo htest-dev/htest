@@ -55,14 +55,33 @@ If both `arg` and `args` are defined, `arg` wins.
 
 `arg` is internally rewritten to `args`, so in any functions that run with the current test as their context you can just use `this.args` without having to explicitly check for `this.arg`
 
-### Setup and teardown (`beforeEach`, `afterEach`, `beforeAll`, `afterAll`) { #setup-teardown }
+### Lifecycle hooks (`beforeEach`, `afterEach`, `beforeAll`, `afterAll`) { #setup-teardown }
 
 Some tests require setup and teardown code that runs before and after the test or group of tests, such as setting up DOM fixtures.
+These four properties are collectively called *lifecycle hooks*.
 
-Functions `beforeEach` and `afterEach` define the code to run before and after *each test* if it is not [skipped](#skip).
-Functions `beforeAll` and `afterAll` define the code to run before and after *all tests in the group* regardless of whether they are skipped.
+`beforeEach` and `afterEach` run before and after *each test* if it is not [skipped](#skip).
+`beforeAll` and `afterAll` run before and after *all tests in the group* regardless of whether they are skipped.
 
-All of these functions can be either sync or async.
+All hooks can be either sync or async.
+
+#### Inheritance
+
+`beforeEach` and `afterEach` are inherited like [`run`](#run): a child that doesn't define its own gets the parent's.
+A child that defines its own **overrides** the parent's — they are not chained automatically.
+`beforeAll` and `afterAll` are **not inherited** — they only run at the group where they are defined.
+
+To call the parent's hook from a child override, use `this.parent.<hook>()`.
+This gives you full control over where the parent's logic runs — before your own, after it, or in the middle:
+
+```js
+{
+	beforeEach () {
+		this.parent.beforeEach();   // parent's setup first
+		this.data.extra = "child";  // then child-specific setup
+	},
+}
+```
 
 #### Error handling
 
@@ -75,7 +94,7 @@ If a hook throws, the test is **skipped** — not failed.
 | `afterEach` throws | Already ran | — | Test **skipped** |
 | `afterAll` throws | Already ran | — | Test results **unaffected** |
 
-You can define a single `beforeEach` or `afterEach` function on a parent or ancestor and differentiate child tests via [`args`](#args) and [`data`](#data).
+You can define a single `beforeEach` or `afterEach` on a parent or ancestor and differentiate child tests via [`args`](#args) and [`data`](#data).
 
 ### `data`: Context parameters
 

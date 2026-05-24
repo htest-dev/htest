@@ -7,6 +7,8 @@ This allows you to only specify what is different in each test,
 and makes it easier to evolve the testsuite over time.
 You can access the inherited property via `this.parent` when re-defining either of these properties on a child or descendant test; for example, `this.parent.run(...args)`.
 
+Tests at the same nesting level run **in parallel**, so don't rely on execution order or shared mutable state between sibling tests.
+
 ## Property index
 
 **All properties are optional**.
@@ -32,10 +34,10 @@ You can access the inherited property via `this.parent` when re-defining either 
 | [`getExpect`](#expect) | Function | A function that generates the expected result dynamically. |
 | [`throws`](#throws) | Boolean, Error subclass, or Function | Whether an error is expected to be thrown. |
 | [`maxTime`](#maxtime) | Number | The maximum time (in ms) that the test should take to run. |
-| [`maxTimeAsync`](#maxtimeasync) | Number | The maximum time (in ms) that the test should take to resolve. |
+| [`maxTimeAsync`](#maxtime) | Number | The maximum time (in ms) that the test should take to resolve. |
 | [`map`](#map) | Function | A mapping function to apply to the result and expected value before comparing them. |
-| [`check`](#check) | Function | A custom function that takes the result and the expected value (if present) as argments and returns a boolean indicating whether the test passed. |
-| [`skip`](#skip) | Boolean | Whether to skip the test(s). |
+| [`check`](#check) | Function or Object | A custom function or options object for comparing the result with the expected value. |
+| [`skip`](#skip) | Any | Any truthy value skips the test(s). |
 </div>
 
 ## Defining the test
@@ -96,10 +98,10 @@ If a hook throws, the test is **skipped** — not failed.
 
 You can define a single `beforeEach` or `afterEach` on a parent or ancestor and differentiate child tests via [`args`](#args) and [`data`](#data).
 
-### `data`: Context parameters
+### Context parameters (`data` and `getData`) { #data }
 
 `data` is an optional object with data that will be accessible to the running function as `this.data`.
-A test’s data is merged with its parent’s data, so you can define common data at a higher level and override it where needed.
+A child’s data inherits from its parent’s, so you can define common data at a higher level and override it where needed.
 It is useful for differentiating the behavior of `run()` across groups of tests without having to redefine it or pass repetitive arguments.
 
 `data` can also be a *data generator* function.
@@ -186,7 +188,7 @@ If you are testing that an error is thrown, you can use `throws`.
 
 You can use `throws: false` to ensure the test passes as long as it doesn't throw an error, regardless of what value it returns.
 
-### Time-based criteria (`maxTime`, `maxTimeAsync`)
+### Time-based criteria (`maxTime`, `maxTimeAsync`) { #maxtime }
 
 The time a test took is always measured and displayed anyway.
 If the test returns a promise, the time it took to resolve is also measured, separately.
@@ -222,7 +224,7 @@ Instead of providing a custom checking function, you can also tweak the default 
 The supported options are:
 - `deep`: Use a deep equality check between the result and the expected value. Defaults to `false`.
 - `looseTypes`: Skip the check that the result and the expected value are of the same type. If skipped, e.g. `"5"` can match `5`. Defaults to `false`.
-- `subset`: Consider `undefined` equals to anything. The test will always pass if the expected value is `undefined`. Defaults to `false`.
+- `subset`: Only check properties present in `expect` — extra properties in the result are ignored. Defaults to `false`.
 - `epsilon`: Allowed distance between the result and the expected value. Defaults to `0`.
 
 #### Examples
@@ -299,5 +301,5 @@ These can be used directly:
 
 Often, we have written tests for parts of the API that are not yet implemented.
 It doesn't make sense to remove these tests, but they should also not be making the testsuite fail.
-You can set `skip: true` to skip a test.
+Any truthy value skips the test. `skip: true` is the simplest form, but you can use any expression evaluated at module load time, e.g. `skip: !globalThis.structuredClone`.
 The number of skipped tests will be shown separately.

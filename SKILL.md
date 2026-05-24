@@ -83,7 +83,7 @@ All properties are optional and inherit from parent to child.
 | `tests`       | Array of child tests. If present, this is a group (parent); if absent, a leaf test                                               |
 | `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's. If a function, it's used as `getData` instead |
 | `getData`     | Function to generate data dynamically. Called like `run`: `getData.apply(test, args)`. Inherited. `data` (literal) takes precedence if both are set. If the getter throws, falls through to empty data |
-| `skip`        | `true` or function returning truthy to skip. Inherited — setting on a parent skips all children                                  |
+| `skip`        | Any truthy value to skip. Can be an expression evaluated at load time, e.g. `skip: !globalThis.structuredClone`. Inherited — setting on a parent skips all children |
 
 ### Comparison
 
@@ -100,7 +100,7 @@ Pass an object instead of a function to configure built-in comparison behavior:
 
 | Option       | Default | Behavior                                                                   |
 | ------------ | ------- | -------------------------------------------------------------------------- |
-| `subset`     | `false` | Extra properties in actual are OK; `undefined` expected values are skipped |
+| `subset`     | `false` | Only check properties present in `expect` — extra properties in the result are ignored |
 | `epsilon`    | `0`     | Numeric tolerance: passes if `Math.abs(actual - expect) <= epsilon`        |
 | `looseTypes` | `false` | Use `==` instead of `===` at leaf level                                    |
 | `deep`       | `true`  | Recurse into objects/arrays. Set `false` for shallow-only                  |
@@ -206,7 +206,7 @@ hTest auto-awaits Promises returned from `run`. No special handling needed:
 
 ## Parallel Execution
 
-Tests at the same nesting level run **in parallel** (`Promise.allSettled`). Don't rely on execution order or shared mutable state between sibling tests:
+Tests at the same nesting level run **in parallel**. Don't rely on execution order or shared mutable state between sibling tests:
 
 ```js
 let counter = 0;

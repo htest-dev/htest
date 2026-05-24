@@ -38,7 +38,29 @@ export default class Test {
 			this.level = 0;
 		}
 
-		Object.assign(this, test);
+		// Copy descriptors so that accessors are preserved (and only invoked when actually accessed).
+		// Normalize each descriptor to be configurable, enumerable, and assignable/writable
+		let descriptors = Object.getOwnPropertyDescriptors(test);
+		for (let key of Object.keys(descriptors)) {
+			let descriptor = descriptors[key];
+			descriptor.configurable = true;
+			descriptor.enumerable = true;
+
+			if ("value" in descriptor) {
+				descriptor.writable = true;
+			}
+			else if (!descriptor.set) {
+				descriptor.set = function (value) {
+					Object.defineProperty(this, key, {
+						value,
+						writable: true,
+						enumerable: true,
+						configurable: true,
+					});
+				};
+			}
+		}
+		Object.defineProperties(this, descriptors);
 
 		if (typeof this.data === "function") {
 			this.getData = this.data;

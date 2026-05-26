@@ -180,13 +180,22 @@ If a hook throws, the test is **skipped** (not failed). Hooks are infrastructure
 
 ### Accessor Support
 
-`name`, `data`, and `expect` support native JS getter syntax. `name` and `data` also support function shorthand (method syntax). For `name` and `data`, getters/shorthands are inherited by children (literal values are not). For `expect`, both literal and getter forms are inherited.
+Any test property supports native JS getter syntax (`get prop () { ... }`). Most properties also support function shorthand (`prop () { ... }`), except those whose value can be a function: `arg`, `expect`, `run`, hooks, `check`, `map`, `throws`.
 
-| Property | Getter | Function shorthand | Notes |
-|----------|--------|--------------------|-------|
-| `name`   | `get name () { ... }` | `name () { ... }` | Literal `name` is not inherited; getter/shorthand is |
-| `data`   | `get data () { ... }` | `data () { ... }` | Returns an object whose properties are merged onto `this.data` |
-| `expect` | `get expect () { ... }` | **Not supported** | Both literal and getter `expect` are inherited. No shorthand — `expect` can be a function value |
+Function shorthands receive the same arguments as `run`, so you can use them to compute values based on test args:
+
+```js
+{
+	skip (x) { return x > 100; },  // skip tests where arg > 100
+	run (x) { return transform(x); },
+	tests: [
+		{ arg: 5 },
+		{ arg: 200 },  // skipped
+	],
+}
+```
+
+Getters and function shorthands are inherited by children (literal values are not, except `expect` — both literal and getter `expect` are inherited).
 
 ```js
 {

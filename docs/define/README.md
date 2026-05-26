@@ -39,6 +39,14 @@ Tests at the same nesting level run **in parallel**, so don't rely on execution 
 | [`skip`](#skip) | Any | Any truthy value skips the test(s). |
 </div>
 
+## Accessor support { #accessors }
+
+Any test property supports native JS getter syntax (e.g. `get skip () { ... }`).
+Most properties also support function shorthand to compute the property value dynamically (e.g. `skip () { return !cond; }`) — except those whose value can be a function: `arg`, `expect`, `run`, hooks, `check`, `map`, `throws`.
+
+Function shorthands are called like `run` — with the same `this` context and arguments — so you can compute values based on test args.
+Getters and function shorthands are inherited by children; literal values are generally not (see individual property docs for exceptions).
+
 ## Defining the test
 
 ### Defining the code to be tested (`run`) { #run }
@@ -103,8 +111,8 @@ You can define a single `beforeEach` or `afterEach` on a parent or ancestor and 
 A child’s data inherits from its parent’s, so you can define common data at a higher level and override it where needed.
 It is useful for differentiating the behavior of `run()` across groups of tests without having to redefine it or pass repetitive arguments.
 
-To compute data dynamically, use a getter (`get data()`) or function shorthand (`data()`).
-The getter/shorthand is called with the same context as `run()` and returns an object whose properties are merged onto `this.data`.
+To compute data dynamically, use a [getter or function shorthand](#accessors).
+The returned object's properties are merged onto `this.data`.
 Unlike literal `data` objects (which inherit via the prototype chain), getter/shorthand data is inherited by children — define once on a parent, and every child gets a fresh copy.
 
 This is useful for providing fresh per-test data without `beforeEach()`:
@@ -130,7 +138,7 @@ This is useful for providing fresh per-test data without `beforeEach()`:
 `name` is a string that describes the test.
 It is optional, but recommended, as it makes it easier to identify the test in the results.
 
-To compute names dynamically, use a getter (`get name()`) or function shorthand (`name()`):
+To compute names dynamically, use a [getter or function shorthand](#accessors):
 
 ```js
 {
@@ -177,7 +185,7 @@ If you specify multiple criteria, nothing will break, but you will get a warning
 `expect` defines the expected result, so you'll be using it the most.
 If `expect` is *not defined*, it defaults to the first argument passed to `run()`, i.e. `this.args[0]`.
 
-To compute expected values dynamically, use a getter (`get expect()`):
+To compute expected values dynamically, use a [getter](#accessors) (`expect` does not support function shorthand — it can legitimately be a function value):
 
 ```js
 {
@@ -192,7 +200,6 @@ To compute expected values dynamically, use a getter (`get expect()`):
 }
 ```
 
-Unlike `name` and `data`, `expect` does **not** support function shorthand — because `expect` can legitimately be a function value.
 Both literal and getter `expect` are inherited by children.
 
 If the expect getter throws an error, the error is caught and `expect` falls through to its default (`args[0]`).

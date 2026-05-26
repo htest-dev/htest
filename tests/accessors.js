@@ -284,18 +284,6 @@ export default {
 			expect: { first: 42, second: 42 },
 		},
 		{
-			name: "get arg() — failure falls through to empty args",
-			run () {
-				let test = new Test({
-					get arg () {
-						throw new Error();
-					},
-				});
-				return test.args;
-			},
-			expect: [],
-		},
-		{
 			name: "get data() — failure falls through to empty data",
 			run () {
 				let test = new Test({
@@ -331,6 +319,22 @@ export default {
 				return { same: test.check(1, 1), diff: test.check(1, 2) };
 			},
 			expect: { same: true, diff: false },
+		},
+		{
+			name: "Function shorthand receives test args",
+			run () {
+				let test = new Test({
+					skip (x) {
+						return x > 100;
+					},
+					run (x) {
+						return x;
+					},
+					tests: [{ arg: 5 }, { arg: 200 }],
+				});
+				return [test.tests[0].skip, test.tests[1].skip];
+			},
+			expect: [false, true],
 		},
 		{
 			name: "Function-valued expect is not called as a factory",

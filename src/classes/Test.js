@@ -7,16 +7,27 @@ const INHERITED_PROPS = [
 	"afterEach",
 	"map",
 	"check",
-	"getName",
-	"getData",
 	"args",
 	"expect",
-	"getExpect",
 	"throws",
 	"maxTime",
 	"maxTimeAsync",
 	"skip",
 	"file",
+];
+
+// Properties whose value can be a function — function shorthand not converted to getXXX
+const NO_SHORTHAND = [
+	"arg",
+	"expect",
+	"run",
+	"beforeEach",
+	"afterEach",
+	"beforeAll",
+	"afterAll",
+	"check",
+	"map",
+	"throws",
 ];
 
 /**
@@ -61,18 +72,23 @@ export default class Test {
 		}
 		Object.defineProperties(this, descriptors);
 
-		// expect is getter-only — function shorthand is NOT converted because
-		// expect can legitimately be a function value
+		// Convert getters and function shorthands to getXXX
+		// Getters are always converted; function shorthands only for non-function-valued props
 		let converted = new Set();
-		for (let prop of ["name", "data", "expect"]) {
+		for (let key of Object.keys(descriptors)) {
+			// getXXX are already getter functions (legacy API or from parent conversion)
+			if (/^get[A-Z]/.test(key)) {
+				continue;
+			}
+
 			let accessor =
-				Object.getOwnPropertyDescriptor(this, prop)?.get ??
-				(prop !== "expect" && typeof this[prop] === "function" && this[prop]);
+				Object.getOwnPropertyDescriptor(this, key)?.get ??
+				(!NO_SHORTHAND.includes(key) && typeof this[key] === "function" && this[key]);
 			if (accessor) {
-				let key = "get" + prop[0].toUpperCase() + prop.slice(1);
-				this[key] = accessor;
-				delete this[prop];
-				converted.add(prop);
+				let prop = "get" + key[0].toUpperCase() + key.slice(1);
+				this[prop] = accessor;
+				delete this[key];
+				converted.add(key);
 			}
 		}
 
@@ -80,7 +96,8 @@ export default class Test {
 		// This works recursively because the parent constructor runs before its children
 		if (this.parent) {
 			for (let prop of INHERITED_PROPS) {
-				// converted guard: get expect() → getExpect deletes expect; without it the parent's value would be inherited back
+				// Conversion deletes the original prop; without this guard
+				// the parent's value would be inherited back over the child's getter
 				if (!(prop in this) && prop in this.parent && !converted.has(prop)) {
 					Object.defineProperty(
 						this,
@@ -89,41 +106,40 @@ export default class Test {
 					);
 				}
 			}
+
+			// Inherit getXXX properties (from getter/shorthand conversion)
+			for (let key of Object.keys(this.parent)) {
+				if (/^get[A-Z]/.test(key) && !(key in this)) {
+					Object.defineProperty(
+						this,
+						key,
+						Object.getOwnPropertyDescriptor(this.parent, key),
+					);
+				}
+			}
 		}
 
 		// Lazy args (arg takes precedence over inherited args)
-		if ("arg" in this) {
-			let getter = Object.getOwnPropertyDescriptor(this, "arg")?.get;
-			if (getter) {
-				defineLazyProperty(this, "args", function () {
-					try {
-						return [getter.call(this)];
-					}
-					catch {
-						return [];
-					}
-				});
-			}
-			else {
-				// Single argument
-				this.args = [this.arg];
-			}
+		if (this.getArg) {
+			converted.delete("arg");
+			defineLazyProperty(this, "args", function () {
+				return [this.getArg()];
+			});
+		}
+		else if ("arg" in this) {
+			// Single argument
+			this.args = [this.arg];
+		}
+		else if (this.getArgs) {
+			converted.delete("args");
+			defineLazyProperty(this, "args", function () {
+				let args = this.getArgs();
+				return Array.isArray(args) ? args : [args];
+			});
 		}
 		else if ("args" in this) {
-			let getter = Object.getOwnPropertyDescriptor(this, "args")?.get;
-			if (getter) {
-				defineLazyProperty(this, "args", function () {
-					try {
-						let args = getter.call(this);
-						return Array.isArray(args) ? args : [args];
-					}
-					catch {
-						return [];
-					}
-				});
-			}
 			// Single args don't need to be wrapped in an array
-			else if (!Array.isArray(this.args)) {
+			if (!Array.isArray(this.args)) {
 				this.args = [this.args];
 			}
 		}
@@ -132,41 +148,40 @@ export default class Test {
 			this.args = [];
 		}
 
-		if (!("check" in this)) {
+		if (this.getCheck) {
+			converted.delete("check");
+			defineLazyProperty(this, "check", function () {
+				let value;
+				try {
+					value = this.getCheck();
+				}
+				catch {}
+
+				if (value && typeof value === "object") {
+					let { deep = true, ...options } = value;
+					let shallow = check.shallowEquals(options);
+					return deep ? check.deep(shallow) : shallow;
+				}
+				// Falsy or non-callable values (e.g. getter threw) fall back to default
+				return typeof value === "function" ? value : check.equals;
+			});
+		}
+		else if (!("check" in this)) {
 			this.check = check.equals;
 		}
-		else {
-			let getter = Object.getOwnPropertyDescriptor(this, "check")?.get;
-			if (getter) {
-				defineLazyProperty(this, "check", function () {
-					let value;
-					try {
-						value = getter.call(this);
-					}
-					catch {}
-
-					if (value && typeof value === "object") {
-						let { deep = true, ...options } = value;
-						let shallow = check.shallowEquals(options);
-						return deep ? check.deep(shallow) : shallow;
-					}
-					// Falsy or non-callable values (e.g. getter threw) fall back to default
-					return typeof value === "function" ? value : check.equals;
-				});
-			}
-			else if (typeof this.check === "object") {
-				let { deep = true, ...options } = this.check;
-				let shallow = check.shallowEquals(options);
-				this.check = deep ? check.deep(shallow) : shallow;
-			}
-			// Falsy or non-callable values (e.g. check: false) fall back to default
-			else if (typeof this.check !== "function") {
-				this.check = check.equals;
-			}
+		else if (typeof this.check === "object") {
+			let { deep = true, ...options } = this.check;
+			let shallow = check.shallowEquals(options);
+			this.check = deep ? check.deep(shallow) : shallow;
+		}
+		// Falsy or non-callable values (e.g. check: false) fall back to default
+		else if (typeof this.check !== "function") {
+			this.check = check.equals;
 		}
 
 		// Prototype chain deferred — avoids triggering parent getters; data getters already converted to getData above
 		let ownData = this.data ?? {};
+		converted.delete("data");
 		defineLazyProperty(this, "data", function () {
 			let data = Object.create(
 				this.parent?.data ?? null,
@@ -183,6 +198,17 @@ export default class Test {
 
 			return data;
 		});
+
+		// Generic lazy resolution for converted properties without custom resolvers
+		// name/expect are handled below (they have fallback logic)
+		converted.delete("name");
+		converted.delete("expect");
+		for (let prop of converted) {
+			let key = "get" + prop[0].toUpperCase() + prop.slice(1);
+			defineLazyProperty(this, prop, function () {
+				return this[key].apply(this, this.args);
+			});
+		}
 
 		if (this.isGroup) {
 			this.tests = this.tests

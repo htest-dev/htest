@@ -247,3 +247,34 @@ export async function interceptConsole (fn) {
 export function pluralize (n, singular, plural) {
 	return n === 1 ? singular : plural;
 }
+
+/**
+ * Define a property that resolves on first access and caches the result.
+ * @param {object} obj Object to define the property on
+ * @param {string} prop Property name
+ * @param {function} resolve Called with `this` bound to the accessing object. Must not read `obj[prop]` (would recurse)
+ */
+export function defineLazyProperty (obj, prop, resolve) {
+	Object.defineProperty(obj, prop, {
+		get () {
+			let value = resolve.call(this);
+			Object.defineProperty(this, prop, {
+				value,
+				writable: true,
+				enumerable: true,
+				configurable: true,
+			});
+			return value;
+		},
+		set (value) {
+			Object.defineProperty(this, prop, {
+				value,
+				writable: true,
+				enumerable: true,
+				configurable: true,
+			});
+		},
+		enumerable: true,
+		configurable: true,
+	});
+}

@@ -25,13 +25,12 @@ Tests at the same nesting level run **in parallel**, so don't rely on execution 
 | [`beforeAll`](#setup-teardown) | Function | Code to run before all tests in the group. |
 | [`afterAll`](#setup-teardown) | Function | Code to run after all tests in the group. |
 | [`data`](#data) | Object | Data that will be accessible to the running function as `this.data`. |
-| [`getData`](#data) | Function | A function that generates data dynamically. |
 | [`name`](#name) | String or Function | A string that describes the test. |
-| [`getName`](#name) | Function | A function that generates the test name dynamically. |
+| [`getName`](#name) | Function | **(Legacy)** A function that generates the test name dynamically. |
 | [`description`](#description) | String | A longer description of the test or group of tests. |
 | [`id`](#id) | String | A unique identifier for the test. |
 | [`expect`](#expect) | Any | The expected result. |
-| [`getExpect`](#expect) | Function | A function that generates the expected result dynamically. |
+| [`getExpect`](#expect) | Function | **(Legacy)** A function that generates the expected result dynamically. |
 | [`throws`](#throws) | Boolean, Error subclass, or Function | Whether an error is expected to be thrown. |
 | [`maxTime`](#maxtime) | Number | The maximum time (in ms) that the test should take to run. |
 | [`maxTimeAsync`](#maxtime) | Number | The maximum time (in ms) that the test should take to resolve. |
@@ -98,24 +97,21 @@ If a hook throws, the test is **skipped** — not failed.
 
 You can define a single `beforeEach` or `afterEach` on a parent or ancestor and differentiate child tests via [`args`](#args) and [`data`](#data).
 
-### Context parameters (`data` and `getData`) { #data }
+### Context parameters (`data`) { #data }
 
 `data` is an optional object with data that will be accessible to the running function as `this.data`.
 A child’s data inherits from its parent’s, so you can define common data at a higher level and override it where needed.
 It is useful for differentiating the behavior of `run()` across groups of tests without having to redefine it or pass repetitive arguments.
 
-`data` can also be a *data generator* function.
-It is called with the same context and arguments as `run()` and returns an object whose properties are merged onto `this.data`.
-You can also explicitly provide a function, via `getData`.
-In fact, if `data` is a function, it gets rewritten as `getData` internally.
+To compute data dynamically, use a getter (`get data()`) or function shorthand (`data()`).
+The getter/shorthand is called with the same context as `run()` and returns an object whose properties are merged onto `this.data`.
+Unlike literal `data` objects (which inherit via the prototype chain), getter/shorthand data is inherited by children — define once on a parent, and every child gets a fresh copy.
 
-If both `data` (as a literal object) and `getData` are defined, `data` wins.
-
-`getData` is useful for providing fresh per-test data without `beforeEach()`:
+This is useful for providing fresh per-test data without `beforeEach()`:
 
 ```js
 {
-    getData () { return { items: [] }; },
+    get data () { return { items: [] }; },
     run () {
         this.data.items.push(1);
         return this.data.items.length;
@@ -129,26 +125,35 @@ If both `data` (as a literal object) and `getData` are defined, `data` wins.
 
 ## Describing the test
 
-### Names and name generators (`name` and `getName()`) { #name }
+### Names and name generators (`name`) { #name }
 
 `name` is a string that describes the test.
 It is optional, but recommended, as it makes it easier to identify the test in the results.
 
-`name` can also be a *name generator* function.
-It is called with the same context and arguments as `run()` and returns the name as a string.
-You can also explicitly provide a function, via `getName`.
-This can be useful if you want to specify a name for the root of tests, as well as a name generator for child tests.
-In fact, if `name` is a function, it gets rewritten as `getName` internally.
+To compute names dynamically, use a getter (`get name()`) or function shorthand (`name()`):
 
-Single names are not inherited, but name generator functions are.
+```js
+{
+	get name () {
+		if (this.level === 1) {
+			return "#" + this.data.method + "()";
+		}
+		return `should return ${this.expect} for ${this.arg}`;
+	},
+	tests: [...]
+}
+```
 
-Name generators are useful for providing a default name for tests, that you can override on a case by case basis via `name`.
-You may find `this.level` useful in the name generator, as it tells you how deep in the hierarchy the test is, allowing you to provide depth-sensitive name patterns.
+Literal names are not inherited, but getter/shorthand names are.
+This makes them useful for providing a default name for tests, that you can override on a case by case basis via a literal `name`.
+You may find `this.level` useful in the getter/shorthand, as it tells you how deep in the hierarchy the test is, allowing you to provide depth-sensitive name patterns.
 
 If no name is provided, it defaults to the first argument passed to `run`, if any.
 
-If `getName()` throws an error (e.g. by accessing `this.run` on a group with no `run`), the error is caught and the name falls through to its default.
-This allows defining a `getName` that only works in certain contexts without crashing the test tree.
+If the name getter throws an error (e.g. by accessing `this.run` on a group with no `run`), the error is caught and the name falls through to its default.
+This allows defining a name getter that only works in certain contexts without crashing the test tree.
+
+**Legacy:** `getName` (a function property called like `run`) still works but getter/shorthand syntax is preferred.
 
 ### Description (`description`) { #description }
 
@@ -167,17 +172,32 @@ E.g. you can use `maxTime` and `maxTimeAsync` together, but not with `expect` or
 
 If you specify multiple criteria, nothing will break, but you will get a warning.
 
-### Result-based criteria (`expect` and `getExpect()`) { #expect }
+### Result-based criteria (`expect`) { #expect }
 
 `expect` defines the expected result, so you'll be using it the most.
 If `expect` is *not defined*, it defaults to the first argument passed to `run()`, i.e. `this.args[0]`.
 
-The expected result can also be generated dynamically via `getExpect`.
-It is called with the same context and arguments as `run()` and returns the expected result.
+To compute expected values dynamically, use a getter (`get expect()`):
 
-If both `expect` and `getExpect` are defined, `expect` wins.
+```js
+{
+	get expect () {
+		return this.arg.toUpperCase();
+	},
+	run: toUpperCase,
+	tests: [
+		{ arg: "foo" },
+		{ arg: "bar" },
+	],
+}
+```
 
-If `getExpect()` throws an error, the error is caught and `expect` falls through to its default (`args[0]`).
+Unlike `name` and `data`, `expect` does **not** support function shorthand — because `expect` can legitimately be a function value.
+Both literal and getter `expect` are inherited by children.
+
+If the expect getter throws an error, the error is caught and `expect` falls through to its default (`args[0]`).
+
+**Legacy:** `getExpect` (a function property called like `run`) still works but getter syntax is preferred.
 
 ### Error-based criteria (`throws`) { #throws }
 

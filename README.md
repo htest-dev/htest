@@ -223,6 +223,7 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 - <kbd>Ctrl</kbd>+<kbd>←</kbd> — "Collapse Subtree" (including the current group)
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>→</kbd> — "Expand All"
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>←</kbd> — "Collapse All"
+- <kbd>o</kbd> — "Open Source File" of the current group (or <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click the displayed path in supporting terminals)
 
 ## AI Agent Integration
 

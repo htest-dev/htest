@@ -159,8 +159,8 @@ export default class Test {
 
 				if (value && typeof value === "object") {
 					let { deep = true, ...options } = value;
-					let shallow = check.shallowEquals(options);
-					return deep ? check.deep(shallow) : shallow;
+					let shallowEquals = check.shallowEquals(options);
+					return deep ? check.deep(shallowEquals) : shallowEquals;
 				}
 				// Falsy or non-callable values (e.g. getter threw) fall back to default
 				return typeof value === "function" ? value : check.equals;
@@ -171,8 +171,8 @@ export default class Test {
 		}
 		else if (typeof this.check === "object") {
 			let { deep = true, ...options } = this.check;
-			let shallow = check.shallowEquals(options);
-			this.check = deep ? check.deep(shallow) : shallow;
+			let shallowEquals = check.shallowEquals(options);
+			this.check = deep ? check.deep(shallowEquals) : shallowEquals;
 		}
 		// Falsy or non-callable values (e.g. check: false) fall back to default
 		else if (typeof this.check !== "function") {

@@ -122,8 +122,12 @@ export default class Test {
 		// Lazy args (arg takes precedence over inherited args)
 		if (this.getArg) {
 			converted.delete("arg");
+			defineLazyProperty(this, "arg", function () {
+				return this.getArg();
+			});
+			// Can't fall through to `this.args = [this.arg]` below — that would eagerly trigger the getter
 			defineLazyProperty(this, "args", function () {
-				return [this.getArg()];
+				return [this.arg];
 			});
 		}
 		else if ("arg" in this) {
@@ -158,7 +162,7 @@ export default class Test {
 				catch {}
 
 				if (value && typeof value === "object") {
-					let { deep = true, ...options } = value;
+					let { deep, ...options } = value;
 					let shallowEquals = check.shallowEquals(options);
 					return deep ? check.deep(shallowEquals) : shallowEquals;
 				}
@@ -170,7 +174,7 @@ export default class Test {
 			this.check = check.equals;
 		}
 		else if (typeof this.check === "object") {
-			let { deep = true, ...options } = this.check;
+			let { deep, ...options } = this.check;
 			let shallowEquals = check.shallowEquals(options);
 			this.check = deep ? check.deep(shallowEquals) : shallowEquals;
 		}

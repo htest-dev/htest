@@ -175,6 +175,18 @@ export default {
 			arg: 5,
 		},
 		{
+			name: "get arg() — lazy arg property resolves on access",
+			run () {
+				let test = new Test({
+					get arg () {
+						return 42;
+					},
+				});
+				return test.arg;
+			},
+			expect: 42,
+		},
+		{
 			name: "get expect() — explicit expect wins over inherited getter",
 			get expect () {
 				return "generated";

@@ -102,7 +102,7 @@ Pass an object instead of a function to configure built-in comparison behavior:
 | `subset`     | `false` | Only check properties present in `expect` — extra properties in the result are ignored |
 | `epsilon`    | `0`     | Numeric tolerance: passes if `Math.abs(actual - expect) <= epsilon`        |
 | `looseTypes` | `false` | Use `==` instead of `===` at leaf level                                    |
-| `deep`       | `true`  | Recurse into objects/arrays. Set `false` for shallow-only                  |
+| `deep`       | `false` | Recurse into objects/arrays                                                |
 
 **`subset: true` is the most useful option.** Use it when results may contain extra fields you don't want to validate:
 
@@ -120,9 +120,9 @@ Pass an object instead of a function to configure built-in comparison behavior:
 Combine options freely:
 
 ```js
-check: { epsilon: 0.005 }                    // numeric tolerance, deep (default)
-check: { subset: true, epsilon: 0.0001 }     // partial match + tolerance
-check: { deep: false, looseTypes: true }     // shallow loose equality
+check: { epsilon: 0.005 }                    // numeric tolerance, shallow
+check: { subset: true, deep: true }          // partial match + deep
+check: { looseTypes: true }                  // shallow loose equality
 ```
 
 For a custom comparison, use an inline function — no import needed:

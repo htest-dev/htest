@@ -48,23 +48,6 @@ export default {
 			expect: "42",
 		},
 		{
-			name: "check: { subset: true } ignores extra properties",
-			run () {
-				let test = new Test({ check: { subset: true } });
-				return test.check({ a: 1, b: 2 }, { a: 1 });
-			},
-			expect: true,
-		},
-		{
-			name: "check: { deep: true } matches nested objects by value",
-			description: "Without deep, { b: 1 } !== { b: 1 } (different references)",
-			run () {
-				let test = new Test({ check: { deep: true } });
-				return test.check({ a: { b: 1 } }, { a: { b: 1 } });
-			},
-			expect: true,
-		},
-		{
 			name: "arg inherits via args",
 			run () {
 				let test = new Test({

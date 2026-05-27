@@ -516,6 +516,18 @@ ${this.error.stack}`);
 			ret.push(`<dim>(${formatDuration(this.timeTaken)})</dim>`);
 		}
 
+		// Show source file path for groups that have their own file (not inherited from parent)
+		if (this.test.file && this.test.file !== this.test.parent?.file) {
+			let { label, path } = this.test.file;
+			if (o?.format === "rich" && path) {
+				// OSC 8 terminal hyperlink. See https://en.wikipedia.org/wiki/ANSI_escape_code#Operating_System_Command_sequences
+				ret.push(`<dim>\x1b]8;;${path}\x07${label}\x1b]8;;\x07</dim>`);
+			}
+			else {
+				ret.push(`<dim>${label}</dim>`);
+			}
+		}
+
 		ret = ret.join(" ");
 
 		return o?.format === "rich" ? ret : stripFormatting(ret);

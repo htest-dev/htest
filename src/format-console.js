@@ -52,6 +52,8 @@ let tags = [
 	`</bg>`,
 ];
 let tagRegex = RegExp(tags.flat().join("|"), "gi");
+// Matches OSC 8 terminal hyperlinks, captures display text
+let osc8Regex = RegExp(String.raw`\x1b]8;;[^\x07]*\x07(.*?)\x1b]8;;\x07`, "g");
 
 function getCSS (active, colorStack, bgStack, mode) {
 	let parts = [];
@@ -145,7 +147,7 @@ export default function format (str) {
 }
 
 export function stripFormatting (str) {
-	return str.replace(tagRegex, "");
+	return str.replace(tagRegex, "").replace(osc8Regex, "$1");
 }
 
 // /**

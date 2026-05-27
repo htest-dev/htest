@@ -16,6 +16,7 @@ const INHERITED_PROPS = [
 	"maxTime",
 	"maxTimeAsync",
 	"skip",
+	"file",
 ];
 
 /**

@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import * as readline from "node:readline";
 
 // Dependencies
@@ -98,20 +98,11 @@ async function getTestsIn (dir) {
 	let paths = filenames.map(name => path.join(cwd, dir, name));
 
 	return Promise.all(
-		paths.map((filePath, i) =>
-			import(pathToFileURL(filePath)).then(
-				module => {
-					let test = module.default ?? module;
-					if (test && typeof test === "object" && Object.isExtensible(test)) {
-						test.file = {
-							label: path.join(dir, filenames[i]), // relative path displayed as link text
-							path: pathToFileURL(filePath).href,
-						};
-					}
-					return test;
-				},
+		paths.map(path =>
+			import(pathToFileURL(path)).then(
+				module => module.default,
 				err => {
-					console.error(`Error importing tests from ${filePath}:`, err);
+					console.error(`Error importing tests from ${path}:`, err);
 				},
 			)),
 	);
@@ -126,9 +117,26 @@ export default {
 		},
 	},
 	resolveLocation: async function (location) {
-		if (fs.statSync(location).isDirectory()) {
+		let loadedFiles = new Set();
+
+		// Watch every module load to tag each test's source file. registerHooks (Node ≥ 22.15) catches
+		// static and dynamic imports. Dynamic import so older Node doesn't SyntaxError on the missing
+		// export; the ?. below makes tagging a no-op there.
+		let { registerHooks } = await import("node:module");
+		let hook = registerHooks?.({
+			load (url, context, nextLoad) {
+				if (url.startsWith("file:") && !url.includes("/node_modules/")) {
+					loadedFiles.add(url);
+				}
+				return nextLoad(url, context);
+			},
+		});
+
+		let tests;
+		let isDirectory = fs.statSync(location).isDirectory();
+		if (isDirectory) {
 			// Directory provided, fetch all files
-			return getTestsIn(location);
+			tests = await getTestsIn(location);
 		}
 		else {
 			// Probably a glob
@@ -141,20 +149,29 @@ export default {
 					return import(pathToFileURL(p)).then(m => m.default ?? m);
 				});
 			});
-			let tests = await Promise.all(modules);
-
-			// Tag test files with source paths (modules already cached, so getTestsIn is just a lookup)
-			await  (async function addSources(dir) {
-				await getTestsIn(dir);
-				for (let entry of fs.readdirSync(dir, { withFileTypes: true })) {
-					if (entry.isDirectory()) {
-						await addSources(path.join(dir, entry.name));
-					}
-				}
-			})(path.dirname(location));
-
-			return tests;
+			tests = await Promise.all(modules);
 		}
+
+		hook?.deregister();
+
+		// Tag each module's default with its source file. Re-imports return the cached namespace — no I/O.
+		await Promise.all(
+			[...loadedFiles].map(async url => {
+				let module = await import(url);
+				let test = module.default ?? module;
+				if (test && typeof test === "object" && Object.isExtensible(test) && !test.file) {
+					test.file = {
+						label: path.relative(
+							isDirectory ? location : path.dirname(location),
+							fileURLToPath(url),
+						),
+						path: url,
+					};
+				}
+			}),
+		);
+
+		return tests;
 	},
 	setup () {
 		process.env.NODE_ENV = "test";

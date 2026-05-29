@@ -13,6 +13,11 @@ import { globSync } from "glob";
 // Internal modules
 import format, { stripFormatting } from "../format-console.js";
 import { getType } from "../util.js";
+import run from "../run.js";
+
+// Bumped on each interactive re-run and appended as ?htest=<version> to file: URLs,
+// so re-importing reloads the whole module graph instead of returning the cache.
+let version = 0;
 
 /**
  * Recursively traverse a subtree starting from `node`
@@ -119,16 +124,25 @@ export default {
 	resolveLocation: async function (location) {
 		let loadedFiles = new Set();
 
-		// Watch every module load to tag each test's source file. registerHooks (Node ≥ 22.15) catches
-		// static and dynamic imports. Dynamic import so older Node doesn't SyntaxError on the missing
-		// export; the ?. below makes tagging a no-op there.
+		// One resolve hook, two jobs: record each test's source file (outside node_modules) for
+		// tagging, and on re-run (version > 0) append ?htest=<version> to file: URLs so the whole
+		// graph reloads fresh. registerHooks needs Node ≥ 22.15; dynamic import + ?. no-op below that.
 		let { registerHooks } = await import("node:module");
 		let hook = registerHooks?.({
-			load (url, context, nextLoad) {
-				if (url.startsWith("file:") && !url.includes("/node_modules/")) {
-					loadedFiles.add(url);
+			resolve (specifier, context, nextResolve) {
+				let resolved = nextResolve(specifier, context);
+
+				if (resolved.url.startsWith("file:") && !resolved.url.includes("/node_modules/")) {
+					if (version > 0) {
+						let url = new URL(resolved.url);
+						url.searchParams.set("htest", version);
+						resolved = { ...resolved, url: url.href, shortCircuit: true };
+					}
+
+					loadedFiles.add(resolved.url);
 				}
-				return nextLoad(url, context);
+
+				return resolved;
 			},
 		});
 
@@ -165,7 +179,7 @@ export default {
 							isDirectory ? location : path.dirname(location),
 							fileURLToPath(url),
 						),
-						path: url,
+						path: url.split("?")[0],
 					};
 				}
 			}),
@@ -197,21 +211,26 @@ export default {
 			render(root, options);
 
 			if (root.stats.pending === 0) {
-				logUpdate.clear();
+				// Print the hint once, on the first run. Re-runs keep this committed copy in place
+				// and refresh the tree below it instead of stacking a new hint each time.
+				if (version === 0) {
+					logUpdate.clear();
 
-				let hint = `
+					let hint = `
 Use <b>↑</b> and <b>↓</b> arrow keys to navigate groups of tests, <b>→</b> and <b>←</b> to expand and collapse them, respectively.
 Use <b>Ctrl+↑</b> and <b>Ctrl+↓</b> to go to the first or last child group of the current group.
 To expand or collapse the current group and all its subgroups, use <b>Ctrl+→</b> and <b>Ctrl+←</b>.
 Press <b>Ctrl+Shift+→</b> and <b>Ctrl+Shift+←</b> to expand or collapse all groups, regardless of the current group.
 Press <b>o</b> to open the source file of the current group.
+Press <b>r</b> to re-run all tests (picks up file changes).
 Use <b>any other key</b> to quit interactive mode.
 `;
-				hint = format(hint);
-				// Why not console.log(hint)? Because we don't want to mess up other console messages produced by tests,
-				// especially the async ones.
-				logUpdate(hint);
-				logUpdate.done();
+					hint = format(hint);
+					// Why not console.log(hint)? Because we don't want to mess up other console messages produced by tests,
+					// especially the async ones.
+					logUpdate(hint);
+					logUpdate.done();
+				}
 
 				readline.emitKeypressEvents(process.stdin);
 				process.stdin.setRawMode(true); // handle keypress events instead of Node
@@ -334,6 +353,14 @@ Use <b>any other key</b> to quit interactive mode.
 							catch {}
 							render(root, options);
 						}
+					}
+					else if (name === "r") {
+						// Re-run, picking up file changes. Remove our keypress listener (the only
+						// one — emitKeypressEvents is the emitter) so the fresh run installs its own.
+						process.stdin.removeAllListeners("keypress");
+						logUpdate.clear();
+						version++;
+						run(options.location, options);
 					}
 					else {
 						// Quit interactive mode on any other key

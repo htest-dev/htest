@@ -1,7 +1,8 @@
 // Native Node packages
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import * as readline from "node:readline";
 
 // Dependencies
@@ -116,9 +117,26 @@ export default {
 		},
 	},
 	resolveLocation: async function (location) {
-		if (fs.statSync(location).isDirectory()) {
+		let loadedFiles = new Set();
+
+		// Watch every module load to tag each test's source file. registerHooks (Node ≥ 22.15) catches
+		// static and dynamic imports. Dynamic import so older Node doesn't SyntaxError on the missing
+		// export; the ?. below makes tagging a no-op there.
+		let { registerHooks } = await import("node:module");
+		let hook = registerHooks?.({
+			load (url, context, nextLoad) {
+				if (url.startsWith("file:") && !url.includes("/node_modules/")) {
+					loadedFiles.add(url);
+				}
+				return nextLoad(url, context);
+			},
+		});
+
+		let tests;
+		let isDirectory = fs.statSync(location).isDirectory();
+		if (isDirectory) {
 			// Directory provided, fetch all files
-			return getTestsIn(location);
+			tests = await getTestsIn(location);
 		}
 		else {
 			// Probably a glob
@@ -131,9 +149,29 @@ export default {
 					return import(pathToFileURL(p)).then(m => m.default ?? m);
 				});
 			});
-
-			return Promise.all(modules);
+			tests = await Promise.all(modules);
 		}
+
+		hook?.deregister();
+
+		// Tag each module's default with its source file. Re-imports return the cached namespace — no I/O.
+		await Promise.all(
+			[...loadedFiles].map(async url => {
+				let module = await import(url);
+				let test = module.default ?? module;
+				if (test && typeof test === "object" && Object.isExtensible(test) && !test.file) {
+					test.file = {
+						label: path.relative(
+							isDirectory ? location : path.dirname(location),
+							fileURLToPath(url),
+						),
+						path: url,
+					};
+				}
+			}),
+		);
+
+		return tests;
 	},
 	setup () {
 		process.env.NODE_ENV = "test";
@@ -166,6 +204,7 @@ Use <b>↑</b> and <b>↓</b> arrow keys to navigate groups of tests, <b>→</b>
 Use <b>Ctrl+↑</b> and <b>Ctrl+↓</b> to go to the first or last child group of the current group.
 To expand or collapse the current group and all its subgroups, use <b>Ctrl+→</b> and <b>Ctrl+←</b>.
 Press <b>Ctrl+Shift+→</b> and <b>Ctrl+Shift+←</b> to expand or collapse all groups, regardless of the current group.
+Press <b>o</b> to open the source file of the current group.
 Use <b>any other key</b> to quit interactive mode.
 `;
 				hint = format(hint);
@@ -274,6 +313,25 @@ Use <b>any other key</b> to quit interactive mode.
 						}
 						else if (active.collapsed === true) {
 							active.collapsed = false;
+							render(root, options);
+						}
+					}
+					else if (name === "o") {
+						let file = active.test?.file?.path;
+						if (file) {
+							try {
+								if (process.platform === "win32") {
+									execFileSync("cmd", ["/c", "start", "", file], {
+										stdio: "inherit",
+									});
+								}
+								else {
+									let command =
+										process.platform === "darwin" ? "open" : "xdg-open";
+									execFileSync(command, ["--", file], { stdio: "inherit" });
+								}
+							}
+							catch {}
 							render(root, options);
 						}
 					}

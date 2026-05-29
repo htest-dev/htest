@@ -516,8 +516,12 @@ ${this.error.stack}`);
 			ret.push(`<dim>(${formatDuration(this.timeTaken)})</dim>`);
 		}
 
-		// Show source file path for groups that have their own file (not inherited from parent)
-		if (this.test.file && this.test.file !== this.test.parent?.file) {
+		// Show the source file path for groups that have their own file (not inherited from parent), but only
+		// when the group is expanded or has failing/skipped tests — a path on every passing file is just noise.
+		// `=== false` (not `!collapsed`): in CI mode `collapsed` is undefined, so it must fall through to the
+		// fail/skip check rather than count as expanded.
+		let showFile = this.test.file && this.test.file !== this.test.parent?.file;
+		if (showFile && (this.collapsed === false || stats.fail > 0 || stats.skipped > 0)) {
 			let { label, path } = this.test.file;
 			if (o?.format === "rich" && path) {
 				// OSC 8 terminal hyperlink. See https://en.wikipedia.org/wiki/ANSI_escape_code#Operating_System_Command_sequences

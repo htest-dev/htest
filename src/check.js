@@ -58,11 +58,22 @@ export function deep (check = (a, b) => a === b) {
 		}
 
 		if (Array.isArray(expect)) {
-			if (!Array.isArray(actual) || actual.length < expect.length) {
+			if (!Array.isArray(actual)) {
 				return false;
 			}
 
-			return expect.every((ref, i) => callee.call(this, actual[i], ref));
+			// Compare across the union of indices so extra trailing elements
+			// in `actual` are rejected by strict equals (and allowed in subset mode,
+			// where `undefined` matches anything).
+			let length = Math.max(actual.length, expect.length);
+
+			for (let i = 0; i < length; i++) {
+				if (!callee.call(this, actual[i], expect[i])) {
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		let type = getType(expect);

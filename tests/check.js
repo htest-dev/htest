@@ -76,6 +76,62 @@ export default {
 					],
 					expect: false,
 				},
+				{
+					name: "Array with extra trailing elements",
+					args: [
+						[1, 0],
+						[],
+					],
+					expect: true,
+				},
+			],
+		},
+		{
+			name: "equals()",
+			run: check.equals,
+			tests: [
+				{
+					name: "Equal arrays",
+					args: [
+						[13, 15],
+						[13, 15],
+					],
+					expect: true,
+				},
+				{
+					name: "Empty arrays",
+					args: [[], []],
+					expect: true,
+				},
+				{
+					name: "Empty expect does not match non-empty actual",
+					args: [[1, 0], []],
+					expect: false,
+				},
+				{
+					name: "Extra trailing elements rejected",
+					args: [
+						[13, 15, 99],
+						[13, 15],
+					],
+					expect: false,
+				},
+				{
+					name: "Longer actual rejected",
+					args: [
+						[1, 2],
+						[1],
+					],
+					expect: false,
+				},
+				{
+					name: "Shorter actual rejected",
+					args: [
+						[1],
+						[1, 2],
+					],
+					expect: false,
+				},
 			],
 		},
 	],

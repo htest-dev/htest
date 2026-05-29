@@ -26,6 +26,26 @@ export default {
 			],
 		},
 		{
+			name: "equals()",
+			run: check.equals,
+			tests: [
+				{
+					name: "Equal arrays",
+					args: [
+						[13, 15],
+						[13, 15],
+					],
+					expect: true,
+				},
+				{
+					name: "Arrays of different length",
+					description: "Regression for #156 — `expect: []` used to match any array",
+					args: [[1, 0], []],
+					expect: false,
+				},
+			],
+		},
+		{
 			name: "subset()",
 			run: check.subset,
 			tests: [
@@ -59,7 +79,7 @@ export default {
 						[1, 2, 3],
 						[1, 2],
 					],
-					expect: true,
+					expect: false,
 				},
 				{
 					name: "Array with fewer elements missing first argument",
@@ -67,7 +87,7 @@ export default {
 						[1, 2, 3],
 						[, 2],
 					],
-					expect: true,
+					expect: false,
 				},
 				{
 					args: [

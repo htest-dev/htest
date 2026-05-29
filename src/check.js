@@ -58,7 +58,7 @@ export function deep (check = (a, b) => a === b) {
 		}
 
 		if (Array.isArray(expect)) {
-			if (!Array.isArray(actual) || actual.length < expect.length) {
+			if (!Array.isArray(actual) || actual.length !== expect.length) {
 				return false;
 			}
 

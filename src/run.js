@@ -39,6 +39,7 @@ export default function run (test, options = {}) {
 	}
 
 	if (getType(test) == "string") {
+		options.location = test; // remember the specifier so interactive re-run can re-resolve it
 		if (env.resolveLocation) {
 			env.resolveLocation(test).then(tests => {
 				run(tests, options);

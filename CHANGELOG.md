@@ -1,5 +1,31 @@
 # Change Log
 
+## v0.0.26 (2026-05-30)
+
+### New features
+
+- Re-run tests in interactive mode by pressing <kbd>R</kbd> (#158)
+- Show source file paths in CLI test output (#155)
+- `getData()`/`data()` shorthand option for dynamic/lazy data generation at construction time (#148)
+- Support accessors (getters) for test properties — deferred to run time instead of eager evaluation in the constructor
+- Handle `AssertionError` as failure, not error, for compatibility with other assertion libraries (#114)
+
+### Bug fixes
+
+- Don't crash on globs (#159)
+- Require exact length for array equality — `equals()` was a prefix match, not strict (#157)
+- Catch hook errors and skip affected tests instead of crashing — cleanup hooks still run after setup failure (#149)
+- Fix `getName()` crash on groups without `run` (#148)
+- Fix `name()` shorthand not clearing `this.name` on the defining group (#148)
+
+### Docs & DX improvements
+
+- Document lifecycle hook inheritance and override semantics
+- Fix docs gaps: property types, subset description, skip semantics, parallel execution
+- Move rendered SKILL to `/skill/`
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.25...v0.0.26
+
 ## v0.0.25 (2026-05-21)
 
 ### New features

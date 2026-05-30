@@ -133,7 +133,7 @@ export default {
 		});
 
 		let tests;
-		let isDirectory = fs.statSync(location).isDirectory();
+		let isDirectory = fs.statSync(location, { throwIfNoEntry: false })?.isDirectory();
 		if (isDirectory) {
 			// Directory provided, fetch all files
 			tests = await getTestsIn(location);

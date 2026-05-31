@@ -15,7 +15,7 @@ Package: `htest.dev` | Repo: https://github.com/htest-dev/htest | Site: https://
 | `npm run dev` | Eleventy dev server for docs site |
 | `npm run release` | Publish via release-it |
 
-No Prettier, no EditorConfig — ESLint only (`eslint.config.js`).
+ESLint (`eslint.config.js`) + Prettier. Run Prettier on JS files only — not on markdown.
 
 ## Architecture
 
@@ -56,10 +56,12 @@ src/
 These cascade from parent to child (set in `Test.js` constructor):
 
 ```
-beforeEach  run  afterEach  map  check  getName  getData  args  expect  getExpect  throws  maxTime  maxTimeAsync  skip
+beforeEach  run  afterEach  map  check  args  expect  throws  maxTime  maxTimeAsync  skip
 ```
 
 NOT inherited: `beforeAll`, `afterAll`, `name`. `data` inherits via prototype chain (child sees parent's data; own properties shadow parent's).
+
+`name`, `data`, and `expect` support getter syntax (`get name()`, `get data()`, `get expect()`). `name` and `data` also support function shorthand (`name()`, `data()`); `expect` does not (it can be a function value). Getter/shorthand forms are inherited, unlike literal values. `getName` and `getExpect` are legacy (shipped in v0.0.25) — prefer getter syntax. `getData` is internal only (never shipped publicly).
 
 ## Self-hosted testing
 

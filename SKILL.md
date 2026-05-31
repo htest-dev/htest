@@ -69,20 +69,19 @@ All properties are optional and inherit from parent to child.
 | `run`       | Function to execute. Called via `run.apply(testInstance, args)`. Inherited from parent — define once, never repeat. If omitted, result defaults to `args[0]`                                                          |
 | `arg`       | Single argument passed to `run`. Can be any value                                                                                                                                                                     |
 | `args`      | Array of arguments passed to `run`. Non-arrays auto-wrapped. `arg` takes precedence                                                                                                                                  |
-| `expect`    | Expected result. Deep equality by default                                                                                                                                                                             |
-| `getExpect` | Function to generate expected value dynamically. Called like `run`: `getExpect.apply(test, args)`. Inherited. `expect` takes precedence if both are set. If the getter throws, falls through to default (`args[0]`) |
+| `expect`    | Expected result. Deep equality by default. Inherited. Can be a getter (`get expect () { ... }`) to compute lazily. No function shorthand — `expect` can be a function value                                          |
+| `getExpect` | **(Legacy — prefer `get expect()`)** Function to generate expected value dynamically. Called like `run`: `getExpect.apply(test, args)`. Inherited. `expect` takes precedence if both are set. If the getter throws, falls through to default (`args[0]`) |
 | `throws`    | `true` (any error), `false` (asserts no error thrown), Error subclass (`TypeError`), or predicate `e => e.code === "ENOENT"`. Inherited                                                                               |
 
 ### Structure
 
 | Property      | Description                                                                                                                      |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `name`        | Test/group label. Also accessible via `this.name` and `this.parent.name` in `run`. If a function, it's used as `getName` instead |
-| `getName`     | Function to generate names dynamically. Called like `run`: `getName.apply(test, args)`. Inherited (unlike `name`). If the getter throws, falls through to default (first arg or "(No args)") |
+| `name`        | Test/group label. Also accessible via `this.name` and `this.parent.name` in `run`. Can be a getter (`get name () { ... }`) or function shorthand (`name () { ... }`) to compute lazily. Literal names are not inherited, but getter/shorthand names are |
+| `getName`     | **(Legacy — prefer `get name()` / `name()`)** Function to generate names dynamically. Called like `run`: `getName.apply(test, args)`. Inherited (unlike literal `name`). If the getter throws, falls through to default (first arg or "(No args)") |
 | `description` | Human-readable explanation of the test's intent or edge case. Ignored by the runner                                              |
 | `tests`       | Array of child tests. If present, this is a group (parent); if absent, a leaf test                                               |
-| `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's. If a function, it's used as `getData` instead |
-| `getData`     | Function to generate data dynamically. Called like `run`: `getData.apply(test, args)`. Inherited. `data` (literal) takes precedence if both are set. If the getter throws, falls through to empty data |
+| `data`        | Inherited object accessible via `this.data`. Child inherits parent's data via prototype chain; own properties shadow parent's. Can be a getter (`get data () { ... }`) or function shorthand (`data () { ... }`) for fresh per-test data |
 | `skip`        | Any truthy value to skip. Can be an expression evaluated at load time, e.g. `skip: !globalThis.structuredClone`. Inherited — setting on a parent skips all children |
 
 ### Comparison
@@ -103,7 +102,7 @@ Pass an object instead of a function to configure built-in comparison behavior:
 | `subset`     | `false` | Only check properties present in `expect` — extra properties in the result are ignored |
 | `epsilon`    | `0`     | Numeric tolerance: passes if `Math.abs(actual - expect) <= epsilon`        |
 | `looseTypes` | `false` | Use `==` instead of `===` at leaf level                                    |
-| `deep`       | `true`  | Recurse into objects/arrays. Set `false` for shallow-only                  |
+| `deep`       | `false` | Recurse into objects/arrays                                                |
 
 **`subset: true` is the most useful option.** Use it when results may contain extra fields you don't want to validate:
 
@@ -121,9 +120,9 @@ Pass an object instead of a function to configure built-in comparison behavior:
 Combine options freely:
 
 ```js
-check: { epsilon: 0.005 }                    // numeric tolerance, deep (default)
-check: { subset: true, epsilon: 0.0001 }     // partial match + tolerance
-check: { deep: false, looseTypes: true }     // shallow loose equality
+check: { epsilon: 0.005 }                    // numeric tolerance, shallow
+check: { subset: true, deep: true }          // partial match + deep
+check: { looseTypes: true }                  // shallow loose equality
 ```
 
 For a custom comparison, use an inline function — no import needed:
@@ -179,14 +178,58 @@ If a hook throws, the test is **skipped** (not failed). Hooks are infrastructure
 | `afterEach` throws | Already ran | — | Test **skipped** |
 | `afterAll` throws | Already ran | — | Test results **unaffected** |
 
+### Accessor Support
+
+Any test property supports native JS getter syntax (`get prop () { ... }`). Most properties also support function shorthand (`prop () { ... }`), except those whose value can be a function: `arg`, `expect`, `run`, hooks, `check`, `map`, `throws`.
+
+Function shorthands receive the same arguments as `run`, so you can use them to compute values based on test args:
+
+```js
+{
+	skip (x) { return x > 100; },  // skip tests where arg > 100
+	run (x) { return transform(x); },
+	tests: [
+		{ arg: 5 },
+		{ arg: 200 },  // skipped
+	],
+}
+```
+
+Getters and function shorthands are inherited by children (literal values are not, except `expect` — both literal and getter `expect` are inherited).
+
+```js
+{
+	get name () {
+		return `Level ${this.level}: ${this.arg}`;
+	},
+	get data () {
+		return { items: [] };  // fresh per test
+	},
+	get expect () {
+		return this.arg.toUpperCase();
+	},
+	run (input) {
+		this.data.items.push(input);
+		return this.data.items[0].toUpperCase();
+	},
+	tests: [
+		{ arg: "foo" },
+		{ arg: "bar" },
+	],
+}
+```
+
+The legacy function properties `getName` and `getExpect` (shipped in v0.0.25) still work but getter syntax is preferred.
+
 ## `this` Inside `run`
 
 `run` is called with `this` set to the Test instance. Available properties:
 
-- `this.args` — argument array
+- `this.arg` — the original `arg` value (if defined). Useful in getters; in `run`, prefer the parameter list
+- `this.args` — argument array. Prefer `this.arg` over `this.args[0]` when the test uses `arg:`
 - `this.data` — inherited data object
 - `this.name` — test name
-- `this.level` — nesting depth (root = 0). Useful in `getName` for depth-aware labels
+- `this.level` — nesting depth (root = 0). Useful in name getters/shorthands for depth-aware labels
 - `this.parent` — parent test/group. Useful for extending the parent's `run` in a child: call `this.parent.run(...args)` first, then transform the result
 - `this.expect` — expected value
 
@@ -335,13 +378,13 @@ export default {
 };
 ```
 
-**Good use: `getData` for fresh per-test data**
+**Good use: getter/shorthand for fresh per-test data**
 
-When each test needs its own fresh data (e.g., an empty array to push into), use `getData` instead of `beforeEach`:
+When each test needs its own fresh data (e.g., an empty array to push into), use a `get data()` getter or `data()` shorthand instead of `beforeEach`:
 
 ```js
 export default {
-	getData () {
+	get data () {
 		return { items: [] };
 	},
 	run () {

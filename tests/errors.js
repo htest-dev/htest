@@ -230,6 +230,43 @@ export default {
 			expect: true,
 		},
 		{
+			name: `skip: "fail" (soft skip)`,
+			async run (test) {
+				let result = await runTest({ skip: "fail", ...test });
+				return { skipped: result.skipped, pass: result.pass };
+			},
+			tests: [
+				{
+					name: "Failing test is skipped",
+					arg: { run: () => "wrong", expect: "right" },
+					expect: { skipped: true, pass: false },
+				},
+				{
+					name: "Passing test is a regular pass",
+					arg: { run: () => "foo", expect: "foo" },
+					expect: { skipped: undefined, pass: true },
+				},
+				{
+					name: "Inherited from parent",
+					async run () {
+						let test = new Test({
+							skip: "fail",
+							tests: [
+								{ run: () => "wrong", expect: "right" },
+								{ run: () => "ok", expect: "ok" },
+							],
+						});
+						let result = new TestResult(test);
+						result.runAll();
+						await result.finished;
+						let { pass, skipped } = result.stats;
+						return { pass, skipped };
+					},
+					expect: { pass: 1, skipped: 1 },
+				},
+			],
+		},
+		{
 			name: "AssertionError treated as failure (issue #114)",
 			skip: typeof globalThis.process === "undefined",
 			async run () {

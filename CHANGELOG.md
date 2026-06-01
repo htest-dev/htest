@@ -1,5 +1,17 @@
 # Change Log
 
+## v0.0.27 (2026-06-01)
+
+### New features
+
+- `skip: "fail"` soft skip — run the test normally; if it fails, treat it as skipped (result still shown); if it passes, count it as a regular pass. Inherits like regular `skip` (#161)
+
+### Bug fixes
+
+- Fix missing output for single root tests and barrel file imports (#160)
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.26...v0.0.27
+
 ## v0.0.26 (2026-05-30)
 
 ### New features

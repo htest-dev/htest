@@ -559,6 +559,7 @@ ${this.error.stack}`);
 			ret.push(this.getSummary(o));
 		}
 		else if (
+			!this.parent ||
 			this.pass === false ||
 			(this.skipped && this.error) ||
 			this.messages?.length > 0 ||

@@ -102,15 +102,17 @@ async function getTestsIn (dir) {
 	let cwd = process.cwd();
 	let paths = filenames.map(name => path.join(cwd, dir, name));
 
-	return Promise.all(
-		paths.map(path =>
-			import(pathToFileURL(path)).then(
-				module => module.default,
-				err => {
-					console.error(`Error importing tests from ${path}:`, err);
-				},
-			)),
-	);
+	return (
+		await Promise.all(
+			paths.map(path =>
+				import(pathToFileURL(path)).then(
+					module => module.default ?? Object.values(module),
+					err => {
+						console.error(`Error importing tests from ${path}:`, err);
+					},
+				)),
+		)
+	).flat();
 }
 
 export default {
@@ -160,10 +162,10 @@ export default {
 				paths = getType(paths) === "string" ? [paths] : paths;
 				return paths.map(p => {
 					p = path.join(process.cwd(), p);
-					return import(pathToFileURL(p)).then(m => m.default ?? m);
+					return import(pathToFileURL(p)).then(m => m.default ?? Object.values(m));
 				});
 			});
-			tests = await Promise.all(modules);
+			tests = (await Promise.all(modules)).flat();
 		}
 
 		hook?.deregister();

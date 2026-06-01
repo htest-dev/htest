@@ -37,7 +37,7 @@ Tests at the same nesting level run **in parallel**, so don't rely on execution 
 | [`maxTimeAsync`](#maxtime) | Number | The maximum time (in ms) that the test should take to resolve. |
 | [`map`](#map) | Function | A mapping function to apply to the result and expected value before comparing them. |
 | [`check`](#check) | Function or Object | A custom function or options object for comparing the result with the expected value. |
-| [`skip`](#skip) | Any | Any truthy value skips the test(s). |
+| [`skip`](#skip) | Any | Any truthy value skips the test(s). `"fail"` runs the test but treats failure as skipped. |
 </div>
 
 ## Defining the test
@@ -303,3 +303,19 @@ Often, we have written tests for parts of the API that are not yet implemented.
 It doesn't make sense to remove these tests, but they should also not be making the testsuite fail.
 Any truthy value skips the test. `skip: true` is the simplest form, but you can use any expression evaluated at module load time, e.g. `skip: !globalThis.structuredClone`.
 The number of skipped tests will be shown separately.
+
+#### Soft skip (`skip: "fail"`) { #skip-fail }
+
+`skip: "fail"` marks a test as a nice-to-have: the test runs, but if it fails, it is treated as skipped rather than a real failure.
+If it passes, it counts as a regular pass.
+This lets you see progress as previously failing tests start passing, without manually removing `skip` markers.
+
+```js
+{
+	name: "New API (not yet stable)",
+	skip: "fail",
+	tests: [
+		{ run: () => newAPI("foo"), expect: "bar" },
+	],
+}
+```

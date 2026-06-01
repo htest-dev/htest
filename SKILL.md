@@ -85,6 +85,8 @@ All properties are optional and inherit from parent to child.
 | `getData`     | Function to generate data dynamically. Called like `run`: `getData.apply(test, args)`. Inherited. `data` (literal) takes precedence if both are set. If the getter throws, falls through to empty data |
 | `skip`        | Any truthy value to skip. Can be an expression evaluated at load time, e.g. `skip: !globalThis.structuredClone`. Inherited — setting on a parent skips all children |
 
+`skip: "fail"` runs the test but treats failure as skipped (the result is still shown). A passing test counts as a regular pass. Useful for marking nice-to-have tests — progress is visible without breaking CI.
+
 ### Comparison
 
 | Property | Description                                                                                                           |

@@ -230,7 +230,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 
 				if (this.test.isTest) {
-					if (this.test.skip) {
+					if (this.test.skip && this.test.skip !== "fail") {
 						this.skip();
 					}
 					else if (error) {
@@ -271,6 +271,10 @@ export default class TestResult extends BubblingEventTarget {
 		}
 		else {
 			Object.assign(this, this.evaluateResult());
+		}
+
+		if (test.skip === "fail" && !this.pass) {
+			this.skipped = true;
 		}
 
 		this.dispatchEvent(new Event("done", { bubbles: true }));
@@ -561,7 +565,7 @@ ${this.error.stack}`);
 		else if (
 			!this.parent ||
 			this.pass === false ||
-			(this.skipped && this.error) ||
+			(this.skipped && (this.error || this.test.skip === "fail")) ||
 			this.messages?.length > 0 ||
 			o?.verbose
 		) {

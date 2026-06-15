@@ -107,7 +107,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 			}
 
-			if (!error) {
+			if (!error && !this.options.signal?.aborted) {
 				try {
 					let start = performance.now();
 					this.actual = this.test.run
@@ -152,8 +152,10 @@ export default class TestResult extends BubblingEventTarget {
 			}
 		});
 
-		if (error) {
-			this.details = [`${this.error.source}: ${this.error.message}`];
+		if (error || this.options.signal?.aborted) {
+			if (this.error) {
+				this.details = [`${this.error.source}: ${this.error.message}`];
+			}
 			this.skip();
 		}
 		else {
@@ -230,7 +232,10 @@ export default class TestResult extends BubblingEventTarget {
 				}
 
 				if (this.test.isTest) {
-					if (this.test.skip && this.test.skip !== "fail") {
+					if (
+						this.options.signal?.aborted ||
+						(this.test.skip && this.test.skip !== "fail")
+					) {
 						this.skip();
 					}
 					else if (error) {

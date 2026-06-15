@@ -115,6 +115,22 @@ async function getTestsIn (dir) {
 	).flat();
 }
 
+// AbortSignal (not a plain boolean) because runAll() shallow-copies options per child —
+// a shared object reference is needed for the abort to be visible across the tree.
+let controller = new AbortController();
+let debounceTimer;
+let watcher;
+
+function rerun (options) {
+	controller.abort();
+	controller = new AbortController();
+	process.stdin.removeAllListeners("keypress");
+	logUpdate.clear();
+	version++;
+	// Don't mutate options — the old tree's TestResults need to see the aborted signal.
+	run(options.location, { ...options, signal: controller.signal });
+}
+
 export default {
 	name: "Node.js",
 	defaultOptions: {
@@ -189,8 +205,32 @@ export default {
 
 		return tests;
 	},
-	setup () {
+	setup (options) {
 		process.env.NODE_ENV = "test";
+		options.signal ??= controller.signal; // so the first run's tree can be aborted by rerun()
+
+		if (!options.watch || watcher) {
+			return;
+		}
+
+		let target = path.resolve(options.location);
+		let watchDir = fs.statSync(target, { throwIfNoEntry: false })?.isDirectory()
+			? target
+			: path.dirname(target);
+
+		watcher = fs.watch(watchDir, { recursive: true }, (eventType, filename) => {
+			if (
+				!filename ||
+				filename.includes("node_modules") ||
+				!filenamePatterns.include.test(filename)
+			) {
+				return;
+			}
+
+			// Editors often fire multiple events per save (temp file + rename); debounce to batch them
+			clearTimeout(debounceTimer);
+			debounceTimer = setTimeout(() => rerun(options), 200);
+		});
 	},
 	done (result, options, event, root) {
 		// Interactive mode requires both a TTY stdout (for cursor control) and a TTY stdin (for raw keypress events).
@@ -226,6 +266,7 @@ Press <b>Ctrl+Shift+→</b> and <b>Ctrl+Shift+←</b> to expand or collapse all 
 Press <b>o</b> to open the source file of the current group.
 Press <b>r</b> to re-run all tests (picks up file changes).
 Use <b>any other key</b> to quit interactive mode.
+${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
 `;
 					hint = format(hint);
 					// Why not console.log(hint)? Because we don't want to mess up other console messages produced by tests,
@@ -241,6 +282,7 @@ Use <b>any other key</b> to quit interactive mode.
 				render(root, options);
 
 				let active = root; // active (highlighted) group of tests that can be expanded/collapsed; root by default
+				process.stdin.removeAllListeners("keypress"); // prevent stale listener from an aborted run's done handler
 				process.stdin.on("keypress", (character, key) => {
 					let name = key.name;
 
@@ -357,15 +399,11 @@ Use <b>any other key</b> to quit interactive mode.
 						}
 					}
 					else if (name === "r") {
-						// Re-run, picking up file changes. Remove our keypress listener (the only
-						// one — emitKeypressEvents is the emitter) so the fresh run installs its own.
-						process.stdin.removeAllListeners("keypress");
-						logUpdate.clear();
-						version++;
-						run(options.location, options);
+						rerun(options);
 					}
 					else {
 						// Quit interactive mode on any other key
+						watcher?.close();
 						logUpdate.done();
 						process.exit();
 					}

@@ -111,18 +111,16 @@ export default {
 				{
 					name: "Pre-aborted signal still runs afterAll()",
 					async run () {
-						let ran = false;
+						let { promise, resolve } = Promise.withResolvers();
 						let test = new Test({
 							afterAll () {
-								ran = true;
+								resolve(true);
 							},
 							tests: [{ run () {} }],
 						});
 						let result = new TestResult(test, null, { signal: AbortSignal.abort() });
 						result.runAll();
-						await result.finished;
-						await new Promise(r => setTimeout(r, 10));
-						return ran;
+						return promise;
 					},
 					expect: true,
 				},

@@ -233,6 +233,10 @@ export default {
 		});
 	},
 	done (result, options, event, root) {
+		if (options.signal?.aborted) {
+			return;
+		}
+
 		// Interactive mode requires both a TTY stdout (for cursor control) and a TTY stdin (for raw keypress events).
 		// The --ci flag explicitly opts into non-interactive mode regardless of TTY state.
 		let isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
@@ -282,7 +286,6 @@ ${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
 				render(root, options);
 
 				let active = root; // active (highlighted) group of tests that can be expanded/collapsed; root by default
-				process.stdin.removeAllListeners("keypress"); // prevent stale listener from an aborted run's done handler
 				process.stdin.on("keypress", (character, key) => {
 					let name = key.name;
 

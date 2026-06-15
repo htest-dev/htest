@@ -11,6 +11,7 @@ import { getConfig, loadScripts } from "./config.js";
  * Supported flags:
  * --ci         Run in continuous integration mode (disables interactive features)
  * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
+ * --watch      Watch the test location for file changes and re-run automatically
  *
  * @param {object} [options] Same as `run()` options, but command line arguments take precedence
  */
@@ -22,7 +23,7 @@ export default async function cli (options = {}) {
 
 	let argv = process.argv.slice(2);
 
-	const flags = ["ci", "verbose"];
+	const flags = ["ci", "verbose", "watch"];
 	for (let flag of flags) {
 		let flagIndex = argv.indexOf("--" + flag);
 		if (flagIndex !== -1) {

@@ -230,7 +230,10 @@ export default class TestResult extends BubblingEventTarget {
 				}
 
 				if (this.test.isTest) {
-					if (this.test.skip && this.test.skip !== "fail") {
+					if (this.options.signal?.aborted) {
+						this.skip();
+					}
+					else if (this.test.skip && this.test.skip !== "fail") {
 						this.skip();
 					}
 					else if (error) {

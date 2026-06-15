@@ -104,13 +104,16 @@ async function getTestsIn (dir) {
 
 	return (
 		await Promise.all(
-			paths.map(path =>
-				import(pathToFileURL(path)).then(
+			paths.map(path => {
+				path = pathToFileURL(path);
+				loadedFiles.add(path.href);
+				return import(path).then(
 					module => module.default ?? Object.values(module),
 					err => {
 						console.error(`Error importing tests from ${path}:`, err);
 					},
-				)),
+				);
+			}),
 		)
 	).flat();
 }
@@ -119,7 +122,8 @@ async function getTestsIn (dir) {
 // a shared object reference is needed for the abort to be visible across the tree.
 let controller = new AbortController();
 let debounceTimer;
-let watcher;
+let watchers = [];
+let loadedFiles = new Set();
 
 function rerun (options) {
 	controller.abort();
@@ -140,7 +144,7 @@ export default {
 		},
 	},
 	resolveLocation: async function (location) {
-		let loadedFiles = new Set();
+		loadedFiles.clear();
 
 		// One resolve hook, two jobs: record each test's source file (outside node_modules) for
 		// tagging, and on re-run (version > 0) append ?htest=<version> to file: URLs so the whole
@@ -178,7 +182,9 @@ export default {
 				paths = getType(paths) === "string" ? [paths] : paths;
 				return paths.map(p => {
 					p = path.join(process.cwd(), p);
-					return import(pathToFileURL(p)).then(m => m.default ?? Object.values(m));
+					p = pathToFileURL(p);
+					loadedFiles.add(p.href);
+					return import(p).then(m => m.default ?? Object.values(m));
 				});
 			});
 			tests = (await Promise.all(modules)).flat();
@@ -211,28 +217,22 @@ export default {
 
 		let isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
 
-		if (!options.watch || watcher || !isInteractive) {
+		if (!options.watch || watchers.length || !isInteractive) {
 			return;
 		}
 
-		let target = path.resolve(options.location);
-		let watchDir = fs.statSync(target, { throwIfNoEntry: false })?.isDirectory()
-			? target
-			: path.dirname(target);
+		let toWatch = [...new Set([...loadedFiles].map(url => path.dirname(fileURLToPath(url))))];
 
-		watcher = fs.watch(watchDir, { recursive: true }, (eventType, filename) => {
-			if (
-				!filename ||
-				filename.includes("node_modules") ||
-				!filenamePatterns.include.test(filename)
-			) {
-				return;
-			}
+		watchers = toWatch.map(dir =>
+			fs.watch(dir, (eventType, filename) => {
+				if (!filename || !filenamePatterns.include.test(filename)) {
+					return;
+				}
 
-			// Editors often fire multiple events per save (temp file + rename); debounce to batch them
-			clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => rerun(options), 200);
-		});
+				// Editors often fire multiple events per save (temp file + rename); debounce to batch them
+				clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => rerun(options), 200);
+			}));
 	},
 	done (result, options, event, root) {
 		if (options.signal?.aborted) {
@@ -408,7 +408,9 @@ ${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
 					}
 					else {
 						// Quit interactive mode on any other key
-						watcher?.close();
+						for (let watcher of watchers) {
+							watcher.close();
+						}
 						logUpdate.done();
 						process.exit();
 					}

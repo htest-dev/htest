@@ -83,6 +83,11 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
+		if (this.options.signal?.aborted) {
+			this.skip();
+			return;
+		}
+
 		let error;
 
 		this.messages = await interceptConsole(async () => {
@@ -232,10 +237,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 
 				if (this.test.isTest) {
-					if (
-						this.options.signal?.aborted ||
-						(this.test.skip && this.test.skip !== "fail")
-					) {
+					if (this.test.skip && this.test.skip !== "fail") {
 						this.skip();
 					}
 					else if (error) {

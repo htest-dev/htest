@@ -209,7 +209,9 @@ export default {
 		process.env.NODE_ENV = "test";
 		options.signal ??= controller.signal; // so the first run's tree can be aborted by rerun()
 
-		if (!options.watch || watcher) {
+		let isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
+
+		if (!options.watch || watcher || !isInteractive) {
 			return;
 		}
 

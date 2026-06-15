@@ -217,7 +217,7 @@ export default class TestResult extends BubblingEventTarget {
 			.then(async () => {
 				let error = this.parent?.error;
 
-				if (!error) {
+				if (!error && !this.options.signal?.aborted) {
 					try {
 						await this.test.beforeAll?.();
 					}

@@ -1,16 +1,14 @@
 // Native Node packages
-import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import * as readline from "node:readline";
 
 // Dependencies
-import logUpdate from "log-update";
-import { AsciiTree } from "oo-ascii-tree";
 import { globSync } from "glob";
 
 // Internal modules
+import interactiveTree, { getTree, prepareRerun } from "../interactive-tree.js";
 import format, { stripFormatting } from "../format-console.js";
 import { getType } from "../util.js";
 import run from "../run.js";
@@ -20,74 +18,6 @@ import TestResult from "../classes/TestResult.js";
 // Bumped on each re-run and appended as a query param when importing test files,
 // so dynamic import() bypasses the module cache and reloads fresh code.
 let version = 0;
-
-/**
- * Recursively traverse a subtree starting from `node`
- * and make groups of tests and test with console messages
- * either collapsed or expanded by setting its `collapsed` property.
- * @param {object} node - The root node of the subtree.
- * @param {boolean} collapsed - Whether to collapse or expand the subtree.
- */
-function setCollapsed (node, collapsed = true) {
-	if (node.tests?.length || node.messages?.length) {
-		node.collapsed = collapsed;
-
-		let nodes = [...(node.tests ?? []), ...(node.messages ?? [])];
-		for (let node of nodes) {
-			setCollapsed(node, collapsed);
-		}
-	}
-}
-
-/**
- * Recursively traverse a subtree starting from `node` and return all visible groups of tests or tests with console messages.
- */
-function getVisibleGroups (node, options, groups = []) {
-	groups.push(node);
-
-	if (node.collapsed === false && node.tests?.length) {
-		let tests = node.tests.filter(test => test.toString(options).collapsed !== undefined); // we are interested in groups only
-		for (let test of tests) {
-			getVisibleGroups(test, options, groups);
-		}
-	}
-
-	return groups;
-}
-
-function getTree (msg, i) {
-	if (msg.collapsed !== undefined) {
-		const icons = {
-			collapsed: "▷",
-			expanded: "▽",
-			collapsedHighlighted: "▶︎",
-			expandedHighlighted: "▼",
-		};
-
-		let { collapsed, highlighted, children } = msg;
-
-		let icon = collapsed ? icons.collapsed : icons.expanded;
-		if (highlighted) {
-			icon = `<c green><b>${collapsed ? icons.collapsedHighlighted : icons.expandedHighlighted}</b></c>`;
-			msg = `<b>${msg}</b>`;
-		}
-		msg = icon + " " + msg;
-		msg = new String(msg);
-		msg.collapsed = collapsed;
-		msg.children = collapsed ? [] : children;
-	}
-
-	return new AsciiTree(`</dim>${msg}<dim>`, ...(msg.children?.map(getTree) ?? []));
-}
-
-// Render the tests stats
-function render (root, options = {}) {
-	let messages = root.toString({ ...options, format: options.format ?? "rich" });
-	let tree = getTree(messages).toString();
-	tree = format(tree);
-
-	logUpdate(tree);
-}
 
 // Set up environment for Node
 const filenamePatterns = {
@@ -126,6 +56,7 @@ let controller = new AbortController();
 let debounceTimer;
 let watchers = new Map();
 let loadedFiles = new Set();
+
 /**
  * Files that changed since the last --watch re-run.
  * The watcher collects URLs here; {@link rerun} drains the set on each re-run.
@@ -156,39 +87,7 @@ let hookActive = false;
  */
 let currentRoot;
 
-/**
- * TestResult subtrees replaced during a --watch re-run.
- * When set, {@link done} collapses only these instead of the entire tree.
- * @type {TestResult[] | null}
- */
-let subtrees = null;
-
-let keypressListener;
 let isInteractive;
-
-function saveState (node) {
-	let state = { collapsed: node.collapsed, highlighted: node.highlighted };
-	if (node.tests) {
-		state.children = node.tests.map(saveState);
-	}
-	return state;
-}
-
-function restoreState (node, state) {
-	node.collapsed = state.collapsed;
-	node.highlighted = state.highlighted;
-
-	if (node.tests) {
-		for (let i = 0; i < node.tests.length; i++) {
-			if (state.children?.[i]) {
-				restoreState(node.tests[i], state.children[i]);
-			}
-			else {
-				setCollapsed(node.tests[i]);
-			}
-		}
-	}
-}
 
 function getAffectedFiles (urls) {
 	let rootPath = currentRoot.test.file?.path;
@@ -255,9 +154,6 @@ function syncWatchers (options) {
 }
 
 async function rerun (options, urls) {
-	if (keypressListener) {
-		process.stdin.off("keypress", keypressListener);
-	}
 	version++;
 
 	if (urls && currentRoot?.stats.pending === 0) {
@@ -325,7 +221,7 @@ async function rerun (options, urls) {
 				currentRoot.stats.total += test.testCount;
 				currentRoot.stats.pending += test.testCount;
 
-				results.push({ result, state: saveState(old) });
+				results.push({ result, old });
 			}
 
 			hookActive = false;
@@ -333,20 +229,11 @@ async function rerun (options, urls) {
 
 			if (results.length === 0) {
 				// Only deletions — no tests to run, no done/finish events will fire.
-				let groups = getVisibleGroups(currentRoot, options);
-				if (!groups.some(g => g.highlighted)) {
-					currentRoot.highlighted = true;
-				}
-
-				render(currentRoot, options);
-
-				if (keypressListener) {
-					process.stdin.on("keypress", keypressListener);
-				}
+				interactiveTree(currentRoot, options, { rerun: () => rerun(options) });
 				return;
 			}
 
-			subtrees = results;
+			prepareRerun(results);
 
 			currentRoot.finished = new Promise(resolve =>
 				currentRoot.addEventListener("finish", resolve, { once: true }));
@@ -359,10 +246,8 @@ async function rerun (options, urls) {
 	}
 
 	// Full re-run fallback
-	subtrees = null;
 	controller.abort();
 	controller = new AbortController();
-	logUpdate.clear();
 	// Don't mutate options — the old tree's TestResults need to see the aborted signal.
 	run(options.location, { ...options, signal: controller.signal });
 }
@@ -495,200 +380,7 @@ export default {
 			return;
 		}
 
-		if (subtrees) {
-			for (let { result, state } of subtrees) {
-				restoreState(result, state);
-			}
-		}
-		else {
-			setCollapsed(root); // all groups and console messages are collapsed by default
-		}
-
-		if (root.stats.pending > 0) {
-			render(root, options);
-		}
-		else {
-			let active;
-
-			if (subtrees) {
-				// --watch re-run complete: preserve UI state, just re-attach navigation
-				subtrees = null;
-
-				let groups = getVisibleGroups(root, options);
-				if (!groups.some(g => g.highlighted)) {
-					root.highlighted = true;
-				}
-
-				active = groups.find(g => g.highlighted) ?? root;
-			}
-			else {
-				// Fresh tree: full interactive setup
-				if (version === 0) {
-					// Print the hint once, on the first run. Re-runs keep this committed copy in place
-					// and refresh the tree below it instead of stacking a new hint each time.
-					logUpdate.clear();
-
-					let hint = `
-Use <b>↑</b> and <b>↓</b> arrow keys to navigate groups of tests, <b>→</b> and <b>←</b> to expand and collapse them, respectively.
-Use <b>Ctrl+↑</b> and <b>Ctrl+↓</b> to go to the first or last child group of the current group.
-To expand or collapse the current group and all its subgroups, use <b>Ctrl+→</b> and <b>Ctrl+←</b>.
-Press <b>Ctrl+Shift+→</b> and <b>Ctrl+Shift+←</b> to expand or collapse all groups, regardless of the current group.
-Press <b>o</b> to open the source file of the current group.
-Press <b>r</b> to re-run all tests (picks up file changes).
-Use <b>any other key</b> to quit interactive mode.
-${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
-`;
-					hint = format(hint);
-					// Why not console.log(hint)? Because we don't want to mess up other console messages produced by tests,
-					// especially the async ones.
-					logUpdate(hint);
-					logUpdate.done();
-				}
-
-				readline.emitKeypressEvents(process.stdin);
-				process.stdin.setRawMode(true); // handle keypress events instead of Node
-
-				root.highlighted = true;
-				active = root;
-			}
-
-			render(root, options);
-
-			keypressListener = (character, key) => {
-				let name = key.name;
-
-				if (name === "up") {
-					// Figure out what group of tests is active (and should be highlighted)
-					let groups = getVisibleGroups(root, options);
-
-					if (key.ctrl) {
-						let parent = active.parent;
-						if (parent) {
-							active = groups.filter(group => group.parent === parent)[0]; // the first one from all groups with the same parent
-						}
-					}
-					else {
-						let index = groups.indexOf(active);
-						index = Math.max(0, index - 1); // choose the previous group, but don't go higher than the root
-						active = groups[index];
-					}
-
-					for (let group of groups) {
-						group.highlighted = false;
-					}
-					active.highlighted = true;
-					render(root, options);
-				}
-				else if (name === "down") {
-					let groups = getVisibleGroups(root, options);
-
-					if (key.ctrl) {
-						let parent = active.parent;
-						if (parent) {
-							active = groups.filter(group => group.parent === parent).at(-1); // the last one from all groups with the same parent
-						}
-					}
-					else {
-						let index = groups.indexOf(active);
-						index = Math.min(groups.length - 1, index + 1); // choose the next group, but don't go lower than the last one
-						active = groups[index];
-					}
-
-					for (let group of groups) {
-						group.highlighted = false;
-					}
-					active.highlighted = true;
-					render(root, options);
-				}
-				else if (name === "left") {
-					if (key.ctrl && key.shift) {
-						// Collapse all groups on Ctrl+Shift+←
-						let groups = getVisibleGroups(root, options);
-						for (let group of groups) {
-							group.highlighted = false;
-						}
-
-						setCollapsed(root);
-						active = root;
-						active.highlighted = true;
-						render(root, options);
-					}
-					else if (key.ctrl) {
-						// Collapse the current group and all its subgroups on Ctrl+←
-						setCollapsed(active);
-						render(root, options);
-					}
-					else if (active.collapsed === false) {
-						active.collapsed = true;
-						render(root, options);
-					}
-					else if (active.parent) {
-						// If the current group is collapsed, collapse its parent group
-						let groups = getVisibleGroups(root, options);
-						let index = groups.indexOf(active.parent);
-						active = groups[index];
-						active.collapsed = true;
-
-						for (let group of groups) {
-							group.highlighted = false;
-						}
-						active.highlighted = true;
-						render(root, options);
-					}
-				}
-				else if (name === "right") {
-					if (key.ctrl && key.shift) {
-						// Expand all groups on Ctrl+Shift+→
-						setCollapsed(root, false);
-						render(root, options);
-					}
-					else if (key.ctrl) {
-						// Expand the current group and all its subgroups on Ctrl+→
-						setCollapsed(active, false);
-						render(root, options);
-					}
-					else if (active.collapsed === true) {
-						active.collapsed = false;
-						render(root, options);
-					}
-				}
-				else if (name === "o") {
-					let file = active.test?.file?.path;
-					if (file) {
-						try {
-							if (process.platform === "win32") {
-								execFileSync("cmd", ["/c", "start", "", file], {
-									stdio: "inherit",
-								});
-							}
-							else {
-								let command = process.platform === "darwin" ? "open" : "xdg-open";
-								execFileSync(command, ["--", file], { stdio: "inherit" });
-							}
-						}
-						catch {}
-						render(root, options);
-					}
-				}
-				else if (name === "r") {
-					rerun(options);
-				}
-				else {
-					// Quit interactive mode on any other key
-					for (let watcher of watchers.values()) {
-						watcher.close();
-					}
-					logUpdate.done();
-					process.exit();
-				}
-			};
-			process.stdin.on("keypress", keypressListener);
-		}
-
 		currentRoot = root;
-
-		if (root.stats.fail > 0) {
-			process.exitCode = 1;
-		}
+		interactiveTree(root, options, { rerun: () => rerun(options) });
 	},
 };

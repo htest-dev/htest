@@ -470,6 +470,9 @@ export default {
 	setup (options) {
 		process.env.NODE_ENV = "test";
 		options.signal ??= controller.signal; // so the first run's tree can be aborted by rerun()
+
+		// Interactive mode requires both a TTY stdout (for cursor control) and a TTY stdin (for raw keypress events).
+		// The --ci flag explicitly opts into non-interactive mode regardless of TTY state.
 		isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
 
 		syncWatchers(options);

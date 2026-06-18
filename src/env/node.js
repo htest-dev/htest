@@ -191,11 +191,12 @@ function restoreState (node, state) {
 }
 
 function getAffectedFiles (urls) {
+	let rootPath = currentRoot.test.file?.path;
 	let files = new Set(currentRoot.tests.map(c => c.test.file?.path).filter(Boolean));
 	let affected = new Set();
 
 	for (let url of urls) {
-		if (!files.has(url) && !deps.has(url)) {
+		if (url === rootPath || (!files.has(url) && !deps.has(url))) {
 			return null;
 		}
 

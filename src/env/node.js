@@ -124,7 +124,7 @@ async function getTestsIn (dir) {
 // a shared object reference is needed for the abort to be visible across the tree.
 let controller = new AbortController();
 let debounceTimer;
-let watchers = [];
+let watchers = new Map();
 let loadedFiles = new Set();
 /**
  * Files that changed since the last --watch re-run.
@@ -223,6 +223,37 @@ function getAffectedFiles (urls) {
 	return affected.size > 0 ? [...affected] : null;
 }
 
+function syncWatchers (options) {
+	if (!options.watch || !isInteractive) {
+		return;
+	}
+
+	for (let url of loadedFiles) {
+		let dir = path.dirname(fileURLToPath(url));
+		if (watchers.has(dir)) {
+			continue;
+		}
+
+		watchers.set(
+			dir,
+			fs.watch(dir, (eventType, filename) => {
+				if (!filename || !filenamePatterns.include.test(filename)) {
+					return;
+				}
+
+				// Editors often fire multiple events per save (temp file + rename); debounce to batch them
+				changed.add(pathToFileURL(path.join(dir, filename)).href);
+				clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => {
+					let files = [...changed];
+					changed.clear();
+					rerun(options, files);
+				}, 200);
+			}),
+		);
+	}
+}
+
 async function rerun (options, urls) {
 	if (keypressListener) {
 		process.stdin.off("keypress", keypressListener);
@@ -298,6 +329,7 @@ async function rerun (options, urls) {
 			}
 
 			hookActive = false;
+			syncWatchers(options);
 
 			if (results.length === 0) {
 				// Only deletions — no tests to run, no done/finish events will fire.
@@ -440,27 +472,7 @@ export default {
 		options.signal ??= controller.signal; // so the first run's tree can be aborted by rerun()
 		isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
 
-		if (!options.watch || watchers.length || !isInteractive) {
-			return;
-		}
-
-		let toWatch = [...new Set([...loadedFiles].map(url => path.dirname(fileURLToPath(url))))];
-
-		watchers = toWatch.map(dir =>
-			fs.watch(dir, (eventType, filename) => {
-				if (!filename || !filenamePatterns.include.test(filename)) {
-					return;
-				}
-
-				// Editors often fire multiple events per save (temp file + rename); debounce to batch them
-				changed.add(pathToFileURL(path.join(dir, filename)).href);
-				clearTimeout(debounceTimer);
-				debounceTimer = setTimeout(() => {
-					let files = [...changed];
-					changed.clear();
-					rerun(options, files);
-				}, 200);
-			}));
+		syncWatchers(options);
 	},
 	done (result, options, event, root) {
 		if (options.signal?.aborted) {
@@ -660,7 +672,7 @@ ${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
 				}
 				else {
 					// Quit interactive mode on any other key
-					for (let watcher of watchers) {
+					for (let watcher of watchers.values()) {
 						watcher.close();
 					}
 					logUpdate.done();

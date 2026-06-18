@@ -519,3 +519,12 @@ process.on("exit", () => {
 		fullscreen.toggle(false);
 	}
 });
+
+for (let sig of ["SIGTERM", "SIGINT", "SIGHUP"]) {
+	process.on(sig, () => {
+		if (process.stdout.isTTY) {
+			fullscreen.toggle(false);
+		}
+		process.exit();
+	});
+}

@@ -252,6 +252,12 @@ async function rerun (options, urls) {
 	run(options.location, { ...options, signal: controller.signal });
 }
 
+process.on("exit", () => {
+	for (let watcher of watchers.values()) {
+		watcher.close();
+	}
+});
+
 export default {
 	name: "Node.js",
 	defaultOptions: {

@@ -83,6 +83,11 @@ export default class TestResult extends BubblingEventTarget {
 	 * Run the test(s)
 	 */
 	async run () {
+		if (this.options.signal?.aborted) {
+			this.skip();
+			return;
+		}
+
 		let error;
 
 		this.messages = await interceptConsole(async () => {
@@ -107,7 +112,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 			}
 
-			if (!error) {
+			if (!error && !this.options.signal?.aborted) {
 				try {
 					let start = performance.now();
 					this.actual = this.test.run
@@ -152,8 +157,10 @@ export default class TestResult extends BubblingEventTarget {
 			}
 		});
 
-		if (error) {
-			this.details = [`${this.error.source}: ${this.error.message}`];
+		if (error || this.options.signal?.aborted) {
+			if (this.error) {
+				this.details = [`${this.error.source}: ${this.error.message}`];
+			}
 			this.skip();
 		}
 		else {
@@ -215,7 +222,7 @@ export default class TestResult extends BubblingEventTarget {
 			.then(async () => {
 				let error = this.parent?.error;
 
-				if (!error) {
+				if (!error && !this.options.signal?.aborted) {
 					try {
 						await this.test.beforeAll?.();
 					}

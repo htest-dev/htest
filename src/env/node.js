@@ -14,9 +14,11 @@ import { globSync } from "glob";
 import format, { stripFormatting } from "../format-console.js";
 import { getType } from "../util.js";
 import run from "../run.js";
+import Test from "../classes/Test.js";
+import TestResult from "../classes/TestResult.js";
 
-// Bumped on each interactive re-run and appended as ?htest=<version> to file: URLs,
-// so re-importing reloads the whole module graph instead of returning the cache.
+// Bumped on each re-run and appended as a query param when importing test files,
+// so dynamic import() bypasses the module cache and reloads fresh code.
 let version = 0;
 
 /**
@@ -104,15 +106,265 @@ async function getTestsIn (dir) {
 
 	return (
 		await Promise.all(
-			paths.map(path =>
-				import(pathToFileURL(path)).then(
+			paths.map(path => {
+				path = pathToFileURL(path);
+				loadedFiles.add(path.href);
+				return import(path).then(
 					module => module.default ?? Object.values(module),
 					err => {
 						console.error(`Error importing tests from ${path}:`, err);
 					},
-				)),
+				);
+			}),
 		)
 	).flat();
+}
+
+// AbortSignal (not a plain boolean) because runAll() shallow-copies options per child —
+// a shared object reference is needed for the abort to be visible across the tree.
+let controller = new AbortController();
+let debounceTimer;
+let watchers = new Map();
+let loadedFiles = new Set();
+/**
+ * Files that changed since the last --watch re-run.
+ * The watcher collects URLs here; {@link rerun} drains the set on each re-run.
+ * @type {Set<string>}
+ */
+let changed = new Set();
+
+/**
+ * Reverse dependency graph: maps each imported file to the set of files that depend on it.
+ * Keys and values are base file URLs (no query params).
+ * Built by the resolve hook, used to map a changed source file to affected test files.
+ * @type {Map<string, Set<string>>}
+ */
+let deps = new Map();
+
+/**
+ * Module resolve hook from `node:module`.
+ * Registered once on first resolveLocation call, never deregistered — process exit cleans up.
+ * Active only when {@link hookActive} is true; inert during test execution.
+ */
+let hook;
+let hookActive = false;
+
+/**
+ * The root TestResult from the last finished test run.
+ * A --watch re-run swaps children in this tree instead of creating a new one.
+ * @type {TestResult | undefined}
+ */
+let currentRoot;
+
+/**
+ * TestResult subtrees replaced during a --watch re-run.
+ * When set, {@link done} collapses only these instead of the entire tree.
+ * @type {TestResult[] | null}
+ */
+let subtrees = null;
+
+let keypressListener;
+let isInteractive;
+
+function saveState (node) {
+	let state = { collapsed: node.collapsed, highlighted: node.highlighted };
+	if (node.tests) {
+		state.children = node.tests.map(saveState);
+	}
+	return state;
+}
+
+function restoreState (node, state) {
+	node.collapsed = state.collapsed;
+	node.highlighted = state.highlighted;
+
+	if (node.tests) {
+		for (let i = 0; i < node.tests.length; i++) {
+			if (state.children?.[i]) {
+				restoreState(node.tests[i], state.children[i]);
+			}
+			else {
+				setCollapsed(node.tests[i]);
+			}
+		}
+	}
+}
+
+function getAffectedFiles (urls) {
+	let rootPath = currentRoot.test.file?.path;
+	let files = new Set(currentRoot.tests.map(c => c.test.file?.path).filter(Boolean));
+	let affected = new Set();
+
+	for (let url of urls) {
+		if (url === rootPath || (!files.has(url) && !deps.has(url))) {
+			return null;
+		}
+
+		let queue = [url];
+		let visited = new Set(queue);
+
+		for (let i = 0; i < queue.length; i++) {
+			let current = queue[i];
+
+			if (files.has(current)) {
+				affected.add(current);
+			}
+			else {
+				for (let importer of deps.get(current) ?? []) {
+					if (!visited.has(importer)) {
+						visited.add(importer);
+						queue.push(importer);
+					}
+				}
+			}
+		}
+	}
+
+	return affected.size > 0 ? [...affected] : null;
+}
+
+function syncWatchers (options) {
+	if (!options.watch || !isInteractive) {
+		return;
+	}
+
+	for (let url of loadedFiles) {
+		let dir = path.dirname(fileURLToPath(url));
+		if (watchers.has(dir)) {
+			continue;
+		}
+
+		watchers.set(
+			dir,
+			fs.watch(dir, (eventType, filename) => {
+				if (!filename || !filenamePatterns.include.test(filename)) {
+					return;
+				}
+
+				// Editors often fire multiple events per save (temp file + rename); debounce to batch them
+				changed.add(pathToFileURL(path.join(dir, filename)).href);
+				clearTimeout(debounceTimer);
+				debounceTimer = setTimeout(() => {
+					let files = [...changed];
+					changed.clear();
+					rerun(options, files);
+				}, 200);
+			}),
+		);
+	}
+}
+
+async function rerun (options, urls) {
+	if (keypressListener) {
+		process.stdin.off("keypress", keypressListener);
+	}
+	version++;
+
+	if (urls && currentRoot?.stats.pending === 0) {
+		let files = getAffectedFiles(urls);
+		if (files) {
+			hookActive = true;
+
+			let results = [];
+
+			for (let url of files) {
+				let index = currentRoot.tests.findIndex(c => c.test.file?.path === url);
+				let old = currentRoot.tests[index];
+
+				if (!fs.existsSync(fileURLToPath(url))) {
+					// File was deleted — subtract stats and remove the subtree
+					for (let key of Object.keys(old.stats)) {
+						currentRoot.stats[key] -= old.stats[key];
+					}
+					currentRoot.timeTaken -= old.timeTaken;
+					if (old.timeTakenAsync) {
+						currentRoot.timeTakenAsync =
+							(currentRoot.timeTakenAsync ?? 0) - old.timeTakenAsync;
+					}
+
+					currentRoot.test.tests.splice(index, 1);
+					currentRoot.tests.splice(index, 1);
+					continue;
+				}
+
+				// Import before mutating stats — on error, keep the old subtree intact
+				let uncached = new URL(url);
+				uncached.searchParams.set("htest", version);
+
+				let module;
+				try {
+					module = await import(uncached.href);
+				}
+				catch (err) {
+					console.error(`Error importing ${url}:`, err);
+					continue;
+				}
+
+				// Subtract old stats, swap in the new subtree
+				for (let key of Object.keys(old.stats)) {
+					currentRoot.stats[key] -= old.stats[key];
+				}
+				currentRoot.timeTaken -= old.timeTaken;
+				if (old.timeTakenAsync) {
+					currentRoot.timeTakenAsync =
+						(currentRoot.timeTakenAsync ?? 0) - old.timeTakenAsync;
+				}
+
+				let test = module.default ?? Object.values(module);
+
+				if (Object.isExtensible(test)) {
+					test.file = old.test.file;
+				}
+
+				test = new Test(test, currentRoot.test);
+				currentRoot.test.tests[index] = test;
+
+				let result = new TestResult(test, currentRoot, { ...currentRoot.options });
+				currentRoot.tests[index] = result;
+
+				currentRoot.stats.total += test.testCount;
+				currentRoot.stats.pending += test.testCount;
+
+				results.push({ result, state: saveState(old) });
+			}
+
+			hookActive = false;
+			syncWatchers(options);
+
+			if (results.length === 0) {
+				// Only deletions — no tests to run, no done/finish events will fire.
+				let groups = getVisibleGroups(currentRoot, options);
+				if (!groups.some(g => g.highlighted)) {
+					currentRoot.highlighted = true;
+				}
+
+				render(currentRoot, options);
+
+				if (keypressListener) {
+					process.stdin.on("keypress", keypressListener);
+				}
+				return;
+			}
+
+			subtrees = results;
+
+			currentRoot.finished = new Promise(resolve =>
+				currentRoot.addEventListener("finish", resolve, { once: true }));
+
+			for (let { result } of results) {
+				result.runAll();
+			}
+			return;
+		}
+	}
+
+	// Full re-run fallback
+	subtrees = null;
+	controller.abort();
+	controller = new AbortController();
+	logUpdate.clear();
+	// Don't mutate options — the old tree's TestResults need to see the aborted signal.
+	run(options.location, { ...options, signal: controller.signal });
 }
 
 export default {
@@ -124,29 +376,51 @@ export default {
 		},
 	},
 	resolveLocation: async function (location) {
-		let loadedFiles = new Set();
+		loadedFiles.clear();
+		deps.clear();
 
-		// One resolve hook, two jobs: record each test's source file (outside node_modules) for
-		// tagging, and on re-run (version > 0) append ?htest=<version> to file: URLs so the whole
-		// graph reloads fresh. registerHooks needs Node ≥ 22.15; dynamic import + ?. no-op below that.
+		// Resolve hook: record dependency edges for --watch re-run, track each test's source file
+		// for tagging, and on re-run (version > 0) append ?htest=<version> to file: URLs so the
+		// module graph reloads fresh. registerHooks needs Node ≥ 22.15; dynamic import + ?. no-op below that.
 		let { registerHooks } = await import("node:module");
-		let hook = registerHooks?.({
+		hook ??= registerHooks?.({
 			resolve (specifier, context, nextResolve) {
 				let resolved = nextResolve(specifier, context);
 
-				if (resolved.url.startsWith("file:") && !resolved.url.includes("/node_modules/")) {
-					if (version > 0) {
-						let url = new URL(resolved.url);
-						url.searchParams.set("htest", version);
-						resolved = { ...resolved, url: url.href, shortCircuit: true };
-					}
-
-					loadedFiles.add(resolved.url);
+				if (
+					!hookActive ||
+					!resolved.url.startsWith("file:") ||
+					resolved.url.includes("/node_modules/")
+				) {
+					return resolved;
 				}
+
+				let baseUrl = new URL(resolved.url);
+				baseUrl.search = "";
+
+				if (context.parentURL) {
+					let parentUrl = new URL(context.parentURL);
+					parentUrl.search = "";
+					let importers = deps.get(baseUrl.href);
+					if (!importers) {
+						importers = new Set();
+						deps.set(baseUrl.href, importers);
+					}
+					importers.add(parentUrl.href);
+				}
+
+				if (version > 0) {
+					baseUrl.searchParams.set("htest", version);
+					resolved = { ...resolved, url: baseUrl.href, shortCircuit: true };
+				}
+
+				loadedFiles.add(resolved.url);
 
 				return resolved;
 			},
 		});
+
+		hookActive = true;
 
 		let tests;
 		let isDirectory = fs.statSync(location, { throwIfNoEntry: false })?.isDirectory();
@@ -162,13 +436,15 @@ export default {
 				paths = getType(paths) === "string" ? [paths] : paths;
 				return paths.map(p => {
 					p = path.join(process.cwd(), p);
-					return import(pathToFileURL(p)).then(m => m.default ?? Object.values(m));
+					p = pathToFileURL(p);
+					loadedFiles.add(p.href);
+					return import(p).then(m => m.default ?? Object.values(m));
 				});
 			});
 			tests = (await Promise.all(modules)).flat();
 		}
 
-		hook?.deregister();
+		hookActive = false;
 
 		// Tag each module's default with its source file. Re-imports return the cached namespace — no I/O.
 		await Promise.all(
@@ -176,12 +452,14 @@ export default {
 				let module = await import(url);
 				let test = module.default ?? module;
 				if (test && typeof test === "object" && Object.isExtensible(test) && !test.file) {
+					let fileUrl = new URL(url);
+					fileUrl.search = "";
 					test.file = {
 						label: path.relative(
 							isDirectory ? location : path.dirname(location),
 							fileURLToPath(url),
 						),
-						path: url.split("?")[0],
+						path: fileUrl.href,
 					};
 				}
 			}),
@@ -189,13 +467,20 @@ export default {
 
 		return tests;
 	},
-	setup () {
+	setup (options) {
 		process.env.NODE_ENV = "test";
-	},
-	done (result, options, event, root) {
+		options.signal ??= controller.signal; // so the first run's tree can be aborted by rerun()
+
 		// Interactive mode requires both a TTY stdout (for cursor control) and a TTY stdin (for raw keypress events).
 		// The --ci flag explicitly opts into non-interactive mode regardless of TTY state.
-		let isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
+		isInteractive = !options.ci && process.stdout.isTTY && process.stdin.isTTY;
+
+		syncWatchers(options);
+	},
+	done (result, options, event, root) {
+		if (options.signal?.aborted) {
+			return;
+		}
 
 		if (!isInteractive) {
 			if (root.stats.pending === 0) {
@@ -207,15 +492,40 @@ export default {
 
 				process.exit(root.stats.fail > 0 ? 1 : 0);
 			}
+			return;
+		}
+
+		if (subtrees) {
+			for (let { result, state } of subtrees) {
+				restoreState(result, state);
+			}
 		}
 		else {
 			setCollapsed(root); // all groups and console messages are collapsed by default
-			render(root, options);
+		}
 
-			if (root.stats.pending === 0) {
-				// Print the hint once, on the first run. Re-runs keep this committed copy in place
-				// and refresh the tree below it instead of stacking a new hint each time.
+		if (root.stats.pending > 0) {
+			render(root, options);
+		}
+		else {
+			let active;
+
+			if (subtrees) {
+				// --watch re-run complete: preserve UI state, just re-attach navigation
+				subtrees = null;
+
+				let groups = getVisibleGroups(root, options);
+				if (!groups.some(g => g.highlighted)) {
+					root.highlighted = true;
+				}
+
+				active = groups.find(g => g.highlighted) ?? root;
+			}
+			else {
+				// Fresh tree: full interactive setup
 				if (version === 0) {
+					// Print the hint once, on the first run. Re-runs keep this committed copy in place
+					// and refresh the tree below it instead of stacking a new hint each time.
 					logUpdate.clear();
 
 					let hint = `
@@ -226,6 +536,7 @@ Press <b>Ctrl+Shift+→</b> and <b>Ctrl+Shift+←</b> to expand or collapse all 
 Press <b>o</b> to open the source file of the current group.
 Press <b>r</b> to re-run all tests (picks up file changes).
 Use <b>any other key</b> to quit interactive mode.
+${options.watch ? "\n<b>Watching for file changes…</b>" : ""}
 `;
 					hint = format(hint);
 					// Why not console.log(hint)? Because we don't want to mess up other console messages produced by tests,
@@ -238,143 +549,146 @@ Use <b>any other key</b> to quit interactive mode.
 				process.stdin.setRawMode(true); // handle keypress events instead of Node
 
 				root.highlighted = true;
-				render(root, options);
+				active = root;
+			}
 
-				let active = root; // active (highlighted) group of tests that can be expanded/collapsed; root by default
-				process.stdin.on("keypress", (character, key) => {
-					let name = key.name;
+			render(root, options);
 
-					if (name === "up") {
-						// Figure out what group of tests is active (and should be highlighted)
-						let groups = getVisibleGroups(root, options);
+			keypressListener = (character, key) => {
+				let name = key.name;
 
-						if (key.ctrl) {
-							let parent = active.parent;
-							if (parent) {
-								active = groups.filter(group => group.parent === parent)[0]; // the first one from all groups with the same parent
-							}
-						}
-						else {
-							let index = groups.indexOf(active);
-							index = Math.max(0, index - 1); // choose the previous group, but don't go higher than the root
-							active = groups[index];
-						}
+				if (name === "up") {
+					// Figure out what group of tests is active (and should be highlighted)
+					let groups = getVisibleGroups(root, options);
 
-						for (let group of groups) {
-							group.highlighted = false;
+					if (key.ctrl) {
+						let parent = active.parent;
+						if (parent) {
+							active = groups.filter(group => group.parent === parent)[0]; // the first one from all groups with the same parent
 						}
-						active.highlighted = true;
-						render(root, options);
-					}
-					else if (name === "down") {
-						let groups = getVisibleGroups(root, options);
-
-						if (key.ctrl) {
-							let parent = active.parent;
-							if (parent) {
-								active = groups.filter(group => group.parent === parent).at(-1); // the last one from all groups with the same parent
-							}
-						}
-						else {
-							let index = groups.indexOf(active);
-							index = Math.min(groups.length - 1, index + 1); // choose the next group, but don't go lower than the last one
-							active = groups[index];
-						}
-
-						for (let group of groups) {
-							group.highlighted = false;
-						}
-						active.highlighted = true;
-						render(root, options);
-					}
-					else if (name === "left") {
-						if (key.ctrl && key.shift) {
-							// Collapse all groups on Ctrl+Shift+←
-							let groups = getVisibleGroups(root, options);
-							for (let group of groups) {
-								group.highlighted = false;
-							}
-
-							setCollapsed(root);
-							active = root;
-							active.highlighted = true;
-							render(root, options);
-						}
-						else if (key.ctrl) {
-							// Collapse the current group and all its subgroups on Ctrl+←
-							setCollapsed(active);
-							render(root, options);
-						}
-						else if (active.collapsed === false) {
-							active.collapsed = true;
-							render(root, options);
-						}
-						else if (active.parent) {
-							// If the current group is collapsed, collapse its parent group
-							let groups = getVisibleGroups(root, options);
-							let index = groups.indexOf(active.parent);
-							active = groups[index];
-							active.collapsed = true;
-
-							groups = groups.map(group => (group.highlighted = false));
-							active.highlighted = true;
-							render(root, options);
-						}
-					}
-					else if (name === "right") {
-						if (key.ctrl && key.shift) {
-							// Expand all groups on Ctrl+Shift+→
-							setCollapsed(root, false);
-							render(root, options);
-						}
-						else if (key.ctrl) {
-							// Expand the current group and all its subgroups on Ctrl+→
-							setCollapsed(active, false);
-							render(root, options);
-						}
-						else if (active.collapsed === true) {
-							active.collapsed = false;
-							render(root, options);
-						}
-					}
-					else if (name === "o") {
-						let file = active.test?.file?.path;
-						if (file) {
-							try {
-								if (process.platform === "win32") {
-									execFileSync("cmd", ["/c", "start", "", file], {
-										stdio: "inherit",
-									});
-								}
-								else {
-									let command =
-										process.platform === "darwin" ? "open" : "xdg-open";
-									execFileSync(command, ["--", file], { stdio: "inherit" });
-								}
-							}
-							catch {}
-							render(root, options);
-						}
-					}
-					else if (name === "r") {
-						// Re-run, picking up file changes. Remove our keypress listener (the only
-						// one — emitKeypressEvents is the emitter) so the fresh run installs its own.
-						process.stdin.removeAllListeners("keypress");
-						logUpdate.clear();
-						version++;
-						run(options.location, options);
 					}
 					else {
-						// Quit interactive mode on any other key
-						logUpdate.done();
-						process.exit();
+						let index = groups.indexOf(active);
+						index = Math.max(0, index - 1); // choose the previous group, but don't go higher than the root
+						active = groups[index];
 					}
-				});
-			}
 
-			if (root.stats.fail > 0) {
-				process.exitCode = 1;
-			}
+					for (let group of groups) {
+						group.highlighted = false;
+					}
+					active.highlighted = true;
+					render(root, options);
+				}
+				else if (name === "down") {
+					let groups = getVisibleGroups(root, options);
+
+					if (key.ctrl) {
+						let parent = active.parent;
+						if (parent) {
+							active = groups.filter(group => group.parent === parent).at(-1); // the last one from all groups with the same parent
+						}
+					}
+					else {
+						let index = groups.indexOf(active);
+						index = Math.min(groups.length - 1, index + 1); // choose the next group, but don't go lower than the last one
+						active = groups[index];
+					}
+
+					for (let group of groups) {
+						group.highlighted = false;
+					}
+					active.highlighted = true;
+					render(root, options);
+				}
+				else if (name === "left") {
+					if (key.ctrl && key.shift) {
+						// Collapse all groups on Ctrl+Shift+←
+						let groups = getVisibleGroups(root, options);
+						for (let group of groups) {
+							group.highlighted = false;
+						}
+
+						setCollapsed(root);
+						active = root;
+						active.highlighted = true;
+						render(root, options);
+					}
+					else if (key.ctrl) {
+						// Collapse the current group and all its subgroups on Ctrl+←
+						setCollapsed(active);
+						render(root, options);
+					}
+					else if (active.collapsed === false) {
+						active.collapsed = true;
+						render(root, options);
+					}
+					else if (active.parent) {
+						// If the current group is collapsed, collapse its parent group
+						let groups = getVisibleGroups(root, options);
+						let index = groups.indexOf(active.parent);
+						active = groups[index];
+						active.collapsed = true;
+
+						for (let group of groups) {
+							group.highlighted = false;
+						}
+						active.highlighted = true;
+						render(root, options);
+					}
+				}
+				else if (name === "right") {
+					if (key.ctrl && key.shift) {
+						// Expand all groups on Ctrl+Shift+→
+						setCollapsed(root, false);
+						render(root, options);
+					}
+					else if (key.ctrl) {
+						// Expand the current group and all its subgroups on Ctrl+→
+						setCollapsed(active, false);
+						render(root, options);
+					}
+					else if (active.collapsed === true) {
+						active.collapsed = false;
+						render(root, options);
+					}
+				}
+				else if (name === "o") {
+					let file = active.test?.file?.path;
+					if (file) {
+						try {
+							if (process.platform === "win32") {
+								execFileSync("cmd", ["/c", "start", "", file], {
+									stdio: "inherit",
+								});
+							}
+							else {
+								let command = process.platform === "darwin" ? "open" : "xdg-open";
+								execFileSync(command, ["--", file], { stdio: "inherit" });
+							}
+						}
+						catch {}
+						render(root, options);
+					}
+				}
+				else if (name === "r") {
+					rerun(options);
+				}
+				else {
+					// Quit interactive mode on any other key
+					for (let watcher of watchers.values()) {
+						watcher.close();
+					}
+					logUpdate.done();
+					process.exit();
+				}
+			};
+			process.stdin.on("keypress", keypressListener);
+		}
+
+		currentRoot = root;
+
+		if (root.stats.fail > 0) {
+			process.exitCode = 1;
 		}
 	},
 };

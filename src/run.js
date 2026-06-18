@@ -75,7 +75,7 @@ export default function run (test, options = {}) {
 	}
 
 	if (env.setup) {
-		env.setup();
+		env.setup(options);
 	}
 
 	if (!(test instanceof Test)) {

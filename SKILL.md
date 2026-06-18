@@ -481,6 +481,7 @@ npx htest test/               # All JS in directory (not recursive, skips index*
 npx htest test/index.js       # Use index files for recursive aggregation
 npx htest test/file.js --ci       # Force non-interactive mode (automatic in non-TTY environments)
 npx htest test/file.js --verbose  # Show all tests, including passing
+npx htest test/file.js --watch    # Re-run automatically on file changes
 ```
 
 ---

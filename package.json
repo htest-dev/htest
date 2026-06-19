@@ -69,9 +69,10 @@
     "typedoc": "^0.28"
   },
   "dependencies": {
+    "ansi-escapes": "^7.3.0",
     "diff": "^8.0.4",
     "glob": "^13.0.6",
-    "log-update": "^6.1.0",
-    "oo-ascii-tree": "^1.127.0"
+    "oo-ascii-tree": "^1.127.0",
+    "string-width": "^8.2.1"
   }
 }

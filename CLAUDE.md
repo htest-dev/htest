@@ -33,14 +33,17 @@ src/
   content.js            DEPRECATED — re-exports equals from check.js with warning
   util.js               General utilities (stringify, getType, interceptConsole, etc.)
   objects.js            Object utilities (children, walk, clone, join)
+  interactive-tree.js   Interactive CLI: ASCII tree rendering, keyboard nav, viewport scrolling
   classes/
     Test.js             Test tree: property inheritance, structure, auto-naming
     TestResult.js       Execution, evaluation, output formatting, event-driven stats
     BubblingEventTarget.js  EventTarget subclass with bubbling support
   env/
-    node.js             Node env: file resolution, interactive CLI tree, CI mode
+    node.js             Node env: file resolution, --watch orchestration, CI mode
     console.js          Browser console env (console.group output)
     auto.js             Auto-detects Node vs browser
+  util/
+    format-diff.js      ANSI-colored diff output for failed assertions
 ```
 
 ### Key data flow
@@ -49,7 +52,7 @@ src/
 2. `run.js` resolves env string → module, resolves file paths → test objects, creates `Test` tree then `TestResult`
 3. `Test` constructor handles property inheritance (parent before children) + converts `check` objects to functions
 4. `TestResult.runAll()` runs siblings in parallel via `Promise.allSettled`, fires `start`/`done`/`finish` events
-5. `env/node.js` renders the interactive ASCII tree via oo-ascii-tree + log-update; exits with code 1 in CI mode
+5. `env/node.js` orchestrates the CLI: file resolution, `--watch` re-runs; delegates rendering to `interactive-tree.js` (alt screen + viewport); exits with code 1 in CI mode
 
 ### Inherited test properties
 

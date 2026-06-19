@@ -1,5 +1,17 @@
 # Change Log
 
+## v0.1.0 (2026-06-19)
+
+### New features
+
+- Watch mode — automatically re-run tests when test files or their imports change (#164)
+
+### Improvements
+
+- Reworked interactive mode — alt screen buffer (no scroll pollution), viewport-aware scrolling with sticky parent headers, collapsible help hint (<kbd>h</kbd>), and proper cleanup on exit (#165)
+
+**Full Changelog**: https://github.com/htest-dev/htest/compare/v0.0.27...v0.1.0
+
 ## v0.0.27 (2026-06-01)
 
 ### New features

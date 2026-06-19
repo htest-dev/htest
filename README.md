@@ -304,7 +304,7 @@ Any help with these would be greatly appreciated!
 ### JS-first testsuites
 
 * [Color.js](https://colorjs.io/test/) [\[source\]](https://github.com/color-js/color.js/tree/main/test)
-* [vᴀꜱᴛly](https://vastly.mavo.io/test/) [\[source\]](https://github.com/mavoweb/vastly/tree/main/test)
+* [Style Observer](https://observe.style/tests/) [\[source\]](https://github.com/leaverou/style-observer/tree/main/tests)
 
 ### HTML-first testsuites
 

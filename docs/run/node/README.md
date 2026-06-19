@@ -138,6 +138,12 @@ Scripts are imported sequentially (later entries may depend on earlier ones). Pa
 
 Each entry is a path string or an object with `src` and optional `loadIf`. If `loadIf` is `false`, the script is skipped.
 
+## Interactive mode
+
+By default, hTest displays results as an interactive tree that you can navigate and expand with the keyboard. Each test group shows the path to its source file — press <kbd>o</kbd> to open it in your default editor, or <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click the path in supporting terminals.
+
+Press <kbd>r</kbd> to re-run all tests without restarting, or <kbd>h</kbd> to toggle the full keyboard shortcut reference.
+
 ## Running in CI environments
 
 For continuous integration environments, you can use the `--ci` flag to optimize output for CI systems:
@@ -175,3 +181,21 @@ jobs:
       - run: npm install
       - run: npm test
 ```
+
+## Verbose output
+
+By default, hTest only shows failed, skipped, and tests with console messages. Use `--verbose` to show all tests, including passing ones:
+
+```sh
+npx htest tests --verbose
+```
+
+## Watch mode
+
+Use `--watch` to automatically re-run tests when files change:
+
+```sh
+npx htest tests --watch
+```
+
+hTest watches test files and the source files they import. When a file changes, only the affected tests are re-run. This works with the interactive tree — results update in place without restarting.

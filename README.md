@@ -32,6 +32,8 @@ https://htest.dev
 - <span>✅</span> **ESM-first**: Written in ESM from the get-go.
 - <span>✅</span> **CLI and browser**: Run your tests in the command line, in the browser, or both.
 - <span>✅</span> **CI-ready**: Fully compatible with continuous integration and automated test running processes.
+- <span>✅</span> **Jump to source**: Open a failing test's source file directly from the interactive CLI.
+- <span>✅</span> **Watch mode**: Tests re-run automatically when source files change. No manual restart needed.
 - <span>✅</span> **Configurable**: Use a config file for setup scripts, CLI flags, and shared options across your test suite.
 - <span>✅</span> **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
 - <span>✅</span> **AI-agent friendly**: Ships with a [`SKILL.md`](SKILL.md) reference for AI coding agents — teach Claude Code, Cursor, Copilot, and others to write hTest tests correctly.
@@ -224,6 +226,7 @@ The CLI output with test results is built as an _interactive tree_ that starts c
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>→</kbd> — "Expand All"
 - <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>←</kbd> — "Collapse All"
 - <kbd>o</kbd> — "Open Source File" of the current group (or <kbd>Cmd</kbd>/<kbd>Ctrl</kbd>+click the displayed path in supporting terminals)
+- <kbd>h</kbd> — "Toggle Help" — show/hide the full keyboard shortcut reference
 - <kbd>r</kbd> — "Re-run All Tests", picking up changes to test files and the source they import
 
 ## AI Agent Integration
@@ -292,8 +295,6 @@ It was soft launched in Q4 2023, but has been in use since 2022 (2017 if you cou
 
 The main things that still need to be done before launch are:
 * Improve documentation — this is top priority, people keep asking for things that are already possible because they’re not documented well!
-* Fix CLI output glitches
-* Implement watch functionality
 * Ensure we're not missing essential use cases
 
 Any help with these would be greatly appreciated!

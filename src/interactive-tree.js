@@ -95,13 +95,15 @@ export function getTree (msg, highlight = {}, parent = -1, state = { line: 0, se
 	return new AsciiTree(`</dim>${msg}<dim>`, ...nodes);
 }
 
-export function setCollapsed (node, collapsed = true) {
+export function setCollapsed (node, collapsed = true, { keepExisting = false } = {}) {
 	if (node.tests?.length || node.messages?.length) {
-		node.collapsed = collapsed;
+		if (!keepExisting || node.collapsed === undefined) {
+			node.collapsed = collapsed;
+		}
 
 		let nodes = [...(node.tests ?? []), ...(node.messages ?? [])];
 		for (let node of nodes) {
-			setCollapsed(node, collapsed);
+			setCollapsed(node, collapsed, { keepExisting });
 		}
 	}
 }
@@ -161,6 +163,10 @@ let viewport;
 let active;
 
 let resizeListener, keypressListener;
+
+// Toggled each tick by the timer below; threaded into TestResult via `o.heartbeat` to alternate the ⏳/⌛ in-flight icon.
+let heartbeat = false;
+let heartbeatTimer;
 
 // Watch state
 
@@ -371,7 +377,7 @@ function handleKeypress (root, options, rerun, key) {
 // Rendering + entry point
 
 function render (root, options) {
-	let messages = root.toString({ ...options, format: options.format ?? "rich" });
+	let messages = root.toString({ ...options, format: options.format ?? "rich", heartbeat });
 
 	let highlight = {}; // where the highlighted group sits in the rendered tree, so the viewport can track it
 	let tree = format(getTree(messages, highlight).toString());
@@ -476,7 +482,6 @@ export default function interactiveTree (root, options, { rerun }) {
 		scroll = 0;
 		offset = 0;
 		viewport = {};
-		setCollapsed(root); // all groups and console messages are collapsed by default
 		initialized.add(root);
 	}
 
@@ -486,9 +491,11 @@ export default function interactiveTree (root, options, { rerun }) {
 	resizeListener = () => render(root, options);
 	process.stdout.on("resize", resizeListener);
 
+	setCollapsed(root, true, { keepExisting: true }); // default-collapse untouched groups (preserves user toggles)
+
 	render(root, options);
 
-	if (root.stats.pending === 0 && !keypressListener) {
+	if (!keypressListener) {
 		readline.emitKeypressEvents(process.stdin);
 		process.stdin.setRawMode(true); // handle keypress events instead of Node
 
@@ -505,6 +512,16 @@ export default function interactiveTree (root, options, { rerun }) {
 
 		keypressListener = (_, key) => handleKeypress(root, options, rerun, key);
 		process.stdin.on("keypress", keypressListener);
+	}
+
+	clearInterval(heartbeatTimer);
+
+	if (root.stats.pending > 0) {
+		heartbeatTimer = setInterval(() => {
+			heartbeat = !heartbeat;
+			setCollapsed(root, true, { keepExisting: true }); // default-collapse untouched groups (preserves user toggles)
+			render(root, options);
+		}, 1000);
 	}
 
 	if (root.stats.fail > 0) {

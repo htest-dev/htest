@@ -468,6 +468,13 @@ ${this.error.stack}`);
 	 * @returns {string}
 	 */
 	getResult (o) {
+		// In-flight: no result yet — render the animating icon and the name, nothing else.
+		if (this.pass === undefined && !this.skipped) {
+			let icon = o?.heartbeat ? "⌛" : "⏳";
+			let ret = `${icon} <dim>${this.name ?? "(Anonymous)"}</dim>`;
+			return o?.format === "rich" ? ret : stripFormatting(ret);
+		}
+
 		let color = this.pass ? "green" : this.skipped ? "yellow" : "red";
 		let label = this.pass ? "PASS" : this.skipped ? "SKIP" : "FAIL";
 		let ret = [
@@ -520,7 +527,7 @@ ${this.error.stack}`);
 			ret.push(`<dim><b>${stats.messages}</b> ${suffix}</dim>`);
 		}
 
-		let icon = stats.fail > 0 ? "❌" : stats.pending > 0 ? "⏳" : "✅";
+		let icon = stats.pending > 0 ? (o?.heartbeat ? "⌛" : "⏳") : stats.fail > 0 ? "❌" : "✅";
 		ret.splice(1, 0, icon);
 
 		if (this.timeTaken) {
@@ -571,6 +578,7 @@ ${this.error.stack}`);
 		}
 		else if (
 			!this.parent ||
+			(this.pass === undefined && !this.skipped) || // in-flight: render the leaf in expanded trees — else returns "" and the parent filters it out
 			this.pass === false ||
 			(this.skipped && (this.error || this.test.skip === "fail")) ||
 			this.messages?.length > 0 ||
@@ -581,7 +589,7 @@ ${this.error.stack}`);
 
 		ret = ret.join("\n");
 
-		if (this.tests || this.messages) {
+		if (this.tests || this.messages?.length > 0) {
 			ret = new String(ret);
 
 			if (this.tests) {

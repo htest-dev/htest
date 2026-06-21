@@ -368,6 +368,16 @@ export default {
 
 		syncWatchers(options);
 	},
+	start (target, options, event, root) {
+		// `start` bubbles — skip descendants so we only fire once, on the root's own start.
+		if (options.signal?.aborted || !isInteractive || target !== root) {
+			return;
+		}
+
+		currentRoot = root;
+		// Open the interactive tree now so progress shows immediately — otherwise nothing renders until the first `done` event.
+		interactiveTree(root, options, { rerun: () => rerun(options) });
+	},
 	done (result, options, event, root) {
 		if (options.signal?.aborted) {
 			return;

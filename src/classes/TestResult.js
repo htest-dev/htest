@@ -188,7 +188,20 @@ export default class TestResult extends BubblingEventTarget {
 		this.stats.total = this.test.testCount;
 		this.stats.pending = this.stats.total;
 		this.finished = new Promise(resolve =>
-			this.addEventListener("finish", resolve, { once: true }));
+			this.addEventListener(
+				"finish",
+				async () => {
+					await Promise.allSettled((this.tests ?? []).map(t => t.finished));
+					if (!this.parent?.error) {
+						try {
+							await this.test.afterAll?.();
+						}
+						catch {}
+					}
+					resolve();
+				},
+				{ once: true },
+			));
 
 		let tests = this.test.tests;
 		let childOptions = Object.assign({}, this.options);
@@ -218,48 +231,38 @@ export default class TestResult extends BubblingEventTarget {
 
 		this.tests = this.test.tests?.map(t => new TestResult(t, this, childOptions));
 
-		delay(1)
-			.then(async () => {
-				let error = this.parent?.error;
+		delay(1).then(async () => {
+			let error = this.parent?.error;
 
-				if (!error && !this.options.signal?.aborted) {
-					try {
-						await this.test.beforeAll?.();
-					}
-					catch (e) {
-						e.source = "beforeAll";
-						error = e;
-					}
+			if (!error && !this.options.signal?.aborted) {
+				try {
+					await this.test.beforeAll?.();
 				}
+				catch (e) {
+					e.source = "beforeAll";
+					error = e;
+				}
+			}
 
-				if (error) {
-					this.error = error;
-				}
+			if (error) {
+				this.error = error;
+			}
 
-				if (this.test.isTest) {
-					if (this.test.skip && this.test.skip !== "fail") {
-						this.skip();
-					}
-					else if (error) {
-						this.details = [`${error.source}: ${error.message}`];
-						this.skip();
-					}
-					else {
-						this.run();
-					}
+			if (this.test.isTest) {
+				if (this.test.skip && this.test.skip !== "fail") {
+					this.skip();
 				}
+				else if (error) {
+					this.details = [`${error.source}: ${error.message}`];
+					this.skip();
+				}
+				else {
+					this.run();
+				}
+			}
 
-				return Promise.allSettled((this.tests ?? []).map(test => test.runAll()));
-			})
-			.then(() => this.finished)
-			.finally(async () => {
-				if (!this.parent?.error) {
-					try {
-						await this.test.afterAll?.();
-					}
-					catch {}
-				}
-			});
+			return Promise.allSettled((this.tests ?? []).map(test => test.runAll()));
+		});
 
 		return this;
 	}

@@ -370,7 +370,20 @@ export default {
 	},
 	start (target, options, event, root) {
 		// `start` bubbles — skip descendants so we only fire once, on the root's own start.
-		if (options.signal?.aborted || !isInteractive || target !== root) {
+		if (options.signal?.aborted || target !== root) {
+			return;
+		}
+
+		if (!isInteractive) {
+			root.finished.then(() => {
+				let messages = root.toString(options);
+				let tree = getTree(messages).toString();
+				tree = process.stdout.isTTY ? format(tree) : stripFormatting(tree);
+
+				console[root.stats.fail > 0 ? "error" : "log"](tree);
+
+				process.exit(root.stats.fail > 0 ? 1 : 0);
+			});
 			return;
 		}
 
@@ -379,20 +392,7 @@ export default {
 		interactiveTree(root, options, { rerun: () => rerun(options) });
 	},
 	done (result, options, event, root) {
-		if (options.signal?.aborted) {
-			return;
-		}
-
-		if (!isInteractive) {
-			if (root.stats.pending === 0) {
-				let messages = root.toString(options);
-				let tree = getTree(messages).toString();
-				tree = process.stdout.isTTY ? format(tree) : stripFormatting(tree);
-
-				console[root.stats.fail > 0 ? "error" : "log"](tree);
-
-				process.exit(root.stats.fail > 0 ? 1 : 0);
-			}
+		if (options.signal?.aborted || !isInteractive) {
 			return;
 		}
 

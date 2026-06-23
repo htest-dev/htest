@@ -32,7 +32,7 @@ async function getTestsIn (dir) {
 			name => !filenamePatterns.exclude.test(name) && filenamePatterns.include.test(name),
 		);
 	let cwd = process.cwd();
-	let paths = filenames.map(name => path.join(cwd, dir, name));
+	let paths = filenames.map(name => path.resolve(cwd, dir, name));
 
 	return (
 		await Promise.all(
@@ -326,7 +326,7 @@ export default {
 				// Convert paths to imported modules
 				paths = getType(paths) === "string" ? [paths] : paths;
 				return paths.map(p => {
-					p = path.join(process.cwd(), p);
+					p = path.resolve(process.cwd(), p);
 					p = pathToFileURL(p);
 					loadedFiles.add(p.href);
 					return import(p).then(m => m.default ?? Object.values(m));

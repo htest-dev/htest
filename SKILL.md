@@ -157,6 +157,8 @@ export default {
 | `beforeEach` / `afterEach` | Run before/after each test. Called like `run` — same `this`, same arguments. Inherited. Sync or async |
 | `beforeAll` / `afterAll`   | Run before/after all tests in the group where defined. Called with no arguments. **Not inherited** |
 
+In nested groups, `beforeAll` runs top-down (parent → child) and `afterAll` runs bottom-up (child → parent); async cleanup is awaited before the next level fires.
+
 A child that defines its own `beforeEach`/`afterEach` **overrides** the parent's — they are not chained automatically.
 
 To invoke the parent's hook from a child override, call `this.parent.beforeEach()` (or whichever hook). You control where the parent's logic runs — before, after, or in the middle of the child's:

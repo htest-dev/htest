@@ -85,6 +85,10 @@ This gives you full control over where the parent's logic runs — before your o
 }
 ```
 
+#### Ordering
+
+In nested groups, `beforeAll` runs **top-down** — the outermost group's setup runs first, then its children's. `afterAll` runs **bottom-up** — the innermost group's teardown completes (including any async work) before its parent's starts. This matches the convention in Jest, Vitest, and Mocha.
+
 #### Error handling
 
 If a hook throws, the test is **skipped** — not failed.

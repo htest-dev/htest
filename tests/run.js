@@ -25,6 +25,68 @@ export default {
 			],
 		},
 		{
+			name: "afterAll lifecycle",
+			tests: [
+				{
+					name: "Runs at every level, bottom-up, before result.finished resolves",
+					async run () {
+						let ran = [];
+						let test = new Test({
+							afterAll: () => ran.push("root"),
+							tests: [
+								{
+									afterAll: () => ran.push("level1"),
+									tests: [
+										{
+											async afterAll () {
+												await new Promise(r => setTimeout(r, 50));
+												ran.push("level2");
+											},
+											tests: [
+												{ run: () => "foo", expect: "foo" },
+												{ run: () => "bar", expect: "bar" },
+											],
+										},
+									],
+								},
+							],
+						});
+						let result = new TestResult(test, null);
+						result.runAll();
+						await result.finished;
+						return ran;
+					},
+					expect: ["level2", "level1", "root"],
+				},
+				{
+					name: "Completes before process.exit in --ci mode (issue #168)",
+					skip: typeof globalThis.process === "undefined",
+					async run () {
+						let { spawnSync } = await import("node:child_process");
+						let { writeFileSync, rmSync } = await import("node:fs");
+						let { tmpdir } = await import("node:os");
+						let { join } = await import("node:path");
+
+						let fixture = join(tmpdir(), "htest-168.js");
+						writeFileSync(
+							fixture,
+							`export default { async afterAll () { await new Promise(r => setTimeout(r, 50)); process.stderr.write("[test] afterAll ran"); }, tests: [{ run: () => 1, expect: 1 }] };`,
+						);
+
+						let { stderr } = spawnSync(
+							process.execPath,
+							[join(process.cwd(), "bin/htest.js"), fixture, "--ci"],
+							{ encoding: "utf8" },
+						);
+						rmSync(fixture);
+
+						return stderr.includes("[test] afterAll ran");
+					},
+					expect: true,
+				},
+			],
+		},
+		{
 			name: "Aborting",
 			tests: [
 				{

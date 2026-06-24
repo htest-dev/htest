@@ -1,47 +1,61 @@
 #!/usr/bin/env node
+import process from "node:process";
 import env from "./env/node.js";
 import run from "./run.js";
 import { getConfig, loadScripts } from "./config.js";
+import { parseArgs, mergeOptions, USAGE_HINT, formatHelp, getVersion } from "./util/options.js";
 
 /**
- * Run tests via a CLI command
- * First argument is the location to look for tests (defaults to the current directory)
- * Second argument is the test path (optional)
+ * Run tests via the CLI or programmatically.
  *
- * Supported flags:
- * --ci         Run in continuous integration mode (disables interactive features)
- * --verbose    Verbose output (show all tests, not just failed, skipped, or tests with intercepted console messages)
- * --watch      Watch the test location for file changes and re-run automatically
- *
- * @param {object} [options] Same as `run()` options, but command line arguments take precedence
+ * @param {object | string} [test] Test object, array of tests, or location string. When omitted,
+ *   the runner resolves a location from CLI positionals, `options.location`, config, or env defaults.
+ * @param {object} [options] Programmatic options, merged underneath CLI flags and positionals
+ *   but on top of the config file. Same shape as `run()` options.
  */
-export default async function cli (options = {}) {
-	let config = await getConfig();
-	if (config) {
-		options = { ...config, ...options };
-	}
+export default async function cli (test, options = {}) {
+	try {
+		let { values: flags, positionals } = parseArgs(process.argv.slice(2));
 
-	let argv = process.argv.slice(2);
-
-	const flags = ["ci", "verbose", "watch"];
-	for (let flag of flags) {
-		let flagIndex = argv.indexOf("--" + flag);
-		if (flagIndex !== -1) {
-			argv.splice(flagIndex, 1); // remove the flag from args
-			options[flag] = true;
+		if (flags.help) {
+			console.log(formatHelp());
+			return;
 		}
+
+		if (flags.version) {
+			console.log(await getVersion());
+			return;
+		}
+
+		let config = await getConfig(flags.config);
+		let hasTest = test != null;
+
+		// Bare `htest` (no test, no argv, no config) — nudge instead of running an empty cwd.
+		if (!hasTest && process.argv.length <= 2 && !config) {
+			console.log(USAGE_HINT);
+			return;
+		}
+
+		// `run()` accepts a string OR test object/array as its first arg, so a `test`-as-location
+		// layer flows through unchanged when nothing else sets it.
+		if (hasTest) {
+			options = { ...options, location: test };
+		}
+		let {
+			location,
+			setup,
+			config: _,
+			...rest
+		} = mergeOptions(config, options, positionals, flags);
+
+		if (setup) {
+			await loadScripts(setup);
+		}
+
+		run(location, { env, ...rest });
 	}
-
-	if (options.setup) {
-		await loadScripts(options.setup);
-		delete options.setup;
+	catch (err) {
+		console.error(`[htest] ${err.message}`);
+		process.exitCode = 1;
 	}
-
-	let location = argv[0];
-
-	if (argv[1]) {
-		options.path = argv[1];
-	}
-
-	run(location, { env, ...options });
 }

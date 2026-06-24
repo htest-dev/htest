@@ -5,6 +5,14 @@ import { globSync } from "glob";
 const CONFIG_GLOB = "{,_,.}htest.{json,config.json,config.js}";
 let config;
 
+/**
+ * Load the project's htest config.
+ *
+ * @param {string} [glob] Glob pattern (a literal file path is a degenerate glob that matches itself).
+ *   Throws on no-match when explicit so a typo doesn't get swallowed; silently returns on no-match
+ *   for the default discovery pattern (a project just doesn't have a config).
+ * @returns {Promise<object | undefined>} The config object, or `undefined` if no config exists.
+ */
 export async function getConfig (glob = CONFIG_GLOB) {
 	if (config) {
 		return config;
@@ -12,18 +20,16 @@ export async function getConfig (glob = CONFIG_GLOB) {
 
 	let paths = globSync(glob);
 
-	if (paths.length > 0) {
-		let configPath = "./" + paths[0];
-		let importParams;
-		configPath = path.join(process.cwd(), configPath);
-		if (configPath.endsWith(".json")) {
-			importParams = { assert: { type: "json" }, with: { type: "json" } };
+	if (paths.length === 0) {
+		if (glob !== CONFIG_GLOB) {
+			throw new Error(`Config file not found: ${glob}`);
 		}
-
-		config = await import(configPath, importParams).then(m => (config = m.default));
-
-		return config;
+		return;
 	}
+
+	let configPath = path.resolve(paths[0]);
+	let importParams = configPath.endsWith(".json") ? { with: { type: "json" } } : undefined;
+	return (config = (await import(configPath, importParams)).default);
 }
 
 export async function loadScripts (scripts) {

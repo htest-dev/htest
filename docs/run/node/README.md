@@ -116,7 +116,7 @@ run("tests/*.js");
 
 ## Configuration
 
-Create `htest.config.js` in your project root (dotfile and JSON variants also supported). Any CLI option (`ci`, `verbose`) or runner option (`format`) can be set here. CLI flags override config values.
+Create `htest.config.js` in your project root (dotfile and JSON variants also supported). Any option from the [Options reference](#options-reference) below can be set here. CLI flags override config values.
 
 ```js
 export default {
@@ -137,6 +137,25 @@ Import one or more scripts before any test file is loaded. Useful for polyfills,
 Scripts are imported sequentially (later entries may depend on earlier ones). Paths resolve relative to the current working directory.
 
 Each entry is a path string or an object with `src` and optional `loadIf`. If `loadIf` is `false`, the script is skipped.
+
+## Options reference
+
+Every CLI flag maps 1:1 to a config file key of the same name. CLI flags override config values; config values override hard defaults.
+
+| Option         | Config key | CLI flag                       | Short | Default                | Description                                                                       |
+| -------------- | ---------- | ------------------------------ | ----- | ---------------------- | --------------------------------------------------------------------------------- |
+| Test location  | `location` | `--location <path>`            | —     | `process.cwd()`        | A directory, file, or glob. Also accepted as the 1st positional argument.         |
+| Test path      | `path`     | `--path <test-path>`           | —     | —                      | Run a single test by its position. Slash-separated 0-based indices, e.g. `0/2` for the 3rd test of the 1st group. Also accepted as the 2nd positional. |
+| Only           | `only`     | `--only <id\|position>`        | —     | —                      | Run only the test with this `id` or at this 0-based position. Pass multiple times to combine, e.g. `--only 0 --only myTestId` runs `myTestId` inside the first group. |
+| CI mode        | `ci`       | `--ci`                         | —     | `false`                | Non-interactive. Exits with an error code if any test fails.                      |
+| Watch          | `watch`    | `--watch`                      | `-w`  | `false`                | Re-run when test or source files change.                                          |
+| Verbose        | `verbose`  | `--verbose`                    | `-V`  | `false`                | Show all test results, including passing ones.                                    |
+| Output format  | `format`   | `--format <rich\|plain>`       | `-f`  | `rich`                 | Output format.                                                                    |
+| Environment    | `env`      | `--env <auto\|node\|console>`  | `-e`  | `auto`                 | Where tests run.                                                                  |
+| Config file    | —          | `--config <path>`              | `-c`  | (found automatically)  | Load this config file instead of searching for one. CLI-only — can't be set in a config (chicken-and-egg). |
+| Setup scripts  | `setup`    | `--setup <path>`               | `-s`  | —                      | Script to run before tests. Pass multiple times to run several. CLI accepts paths only; the config form accepts `{ src, loadIf }` objects too. |
+| Help           | —          | `--help`                       | `-h`  | —                      | Show the help message.                                                            |
+| Version        | —          | `--version`                    | `-v`  | —                      | Show the version.                                                                 |
 
 ## Interactive mode
 

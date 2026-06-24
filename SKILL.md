@@ -454,7 +454,9 @@ tests: rawCases.map(c => ({ ...c, expect: referenceImpl(c.arg) })),
 
 ## Configuration
 
-Optional. hTest looks for `{,_,.}htest.{json,config.json,config.js}` in the project root. Accepts any CLI flag (`ci`, `verbose`) or runner option as a property; CLI flags override config values.
+Optional. hTest looks for `{,_,.}htest.{json,config.json,config.js}` in the project root, or use `--config <path>` to load one explicitly. Every CLI flag maps 1:1 to a config key of the same name; CLI flags override config values.
+
+Config keys: `location`, `path`, `only`, `ci`, `watch`, `verbose`, `format` (`"rich"` or `"plain"`), `env` (`"auto"`, `"node"`, `"console"`), `setup`.
 
 ### `setup` — Pre-Test Scripts
 
@@ -476,12 +478,20 @@ export default {
 ## Running Tests
 
 ```bash
-npx htest test/file.js       # Single file
-npx htest test/               # All JS in directory (not recursive, skips index*)
-npx htest test/index.js       # Use index files for recursive aggregation
-npx htest test/file.js --ci       # Force non-interactive mode (automatic in non-TTY environments)
-npx htest test/file.js --verbose  # Show all tests, including passing
-npx htest test/file.js --watch    # Re-run automatically on file changes
+npx htest test/file.js                  # Single file
+npx htest test/                         # All JS in directory (not recursive, skips index*)
+npx htest test/index.js                 # Use index files for recursive aggregation
+npx htest test/file.js 0/1              # Run only the test at this position (positional)
+npx htest test/file.js --only myTestId  # Run only the test with this id (or position); pass multiple times to combine
+npx htest test/file.js --ci             # Force non-interactive mode (automatic in non-TTY environments)
+npx htest test/file.js --verbose        # Show all tests, including passing (-V short)
+npx htest test/file.js --watch          # Re-run automatically on file changes (-w short)
+npx htest test/file.js --format plain   # Plain output instead of rich (-f short)
+npx htest test/file.js --env node       # Force a specific environment (-e short)
+npx htest test/file.js --config ./my.config.js  # Load a specific config file (-c short)
+npx htest test/file.js --setup ./hooks.js       # Run a setup script first; pass multiple times to run several (-s short)
+npx htest --help                        # List every flag (-h short)
+npx htest --version                     # Print version (-v short)
 ```
 
 ---

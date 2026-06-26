@@ -65,13 +65,14 @@ export default function run (test, options = {}) {
 		return;
 	}
 
-	if (options.path) {
-		subsetTests(test, options.path);
+	if (options.path != null && !subsetTests(test, options.path)) {
+		Test.warn(`Path ${options.path} produced no tests.`);
+		return;
+	}
 
-		if (!test || test.tests?.length === 0) {
-			Test.warn(`Path ${options.path} produced no tests.`);
-			return;
-		}
+	if (options.only != null && !subsetTests(test, options.only)) {
+		Test.warn(`--only ${[].concat(options.only).join(", ")} produced no tests.`);
+		return;
 	}
 
 	if (env.setup) {

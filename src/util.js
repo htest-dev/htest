@@ -155,39 +155,101 @@ export function stringify (obj, options = {}) {
 	});
 }
 
+/**
+ * Mark every test outside the selected subset as `skip: true`. Mutates `test` in place.
+ *
+ * Each path segment is either:
+ * - an integer (or integer string, e.g. `"3"`, `"-1"`) — descends by that 0-based index at the
+ *   current level. Negative numbers index from the end.
+ * - any other string — searches the current subtree for a test whose `id` matches,
+ *   skip-marking every sibling along the descent path.
+ *
+ * Segments are walked left-to-right, so mixed forms work: a numeric prefix narrows the
+ * scope, then a string id finds within. Empty segments (leading/trailing/double slashes) are
+ * tolerated. Returns `false` when any segment fails to match — an unknown id, an
+ * out-of-range index, or descent into a leaf. Any marks already applied stay.
+ *
+ * @param {object} test Root of the test tree.
+ * @param {string | number | Array<string | number>} path `/`-separated path string, a single
+ *        segment, or an array of segments (each a numeric index, a numeric string, or an id;
+ *        array elements may themselves contain `/`).
+ * @returns {boolean} `true` if every segment matched something.
+ */
 export function subsetTests (test, path) {
 	if (!Array.isArray(path)) {
-		path = path.split("/");
+		path = [path];
 	}
 
-	let tests = test;
+	path = path.flatMap(s => String(s).split("/")).filter(Boolean);
+
+	// Empty after filtering: treat as a missed selector so the caller warns —
+	// returning `true` here would silently run the entire suite.
+	if (path.length === 0) {
+		return false;
+	}
 
 	for (let segment of path) {
-		if (tests?.tests) {
-			tests = tests.tests;
-		}
-		else if (!Array.isArray(tests)) {
-			tests = null;
+		// Re-check each iteration: `test` descends below, so this catches a path that goes past a leaf.
+		if (!Array.isArray(test?.tests)) {
+			return false;
 		}
 
-		if (!tests) {
-			break;
-		}
-
-		segment = Number(segment);
-		let segmentIndex = (segment < 0 ? tests.length : 0) + segment;
-
-		for (let i = 0; i < tests.length; i++) {
-			let t = tests[i];
-			if (i !== segmentIndex) {
-				t.skip = true;
+		let indices;
+		// TODO ranges (e.g. "0-5")
+		if (/^-?\d+$/.test(segment)) {
+			segment = Number(segment);
+			if (segment < 0) {
+				segment += test.tests.length;
 			}
+			indices = segment >= 0 && segment < test.tests.length ? [segment] : null;
+		}
+		else {
+			indices = getPath(test, segment);
 		}
 
-		tests = tests[segment];
+		if (!indices) {
+			return false;
+		}
+
+		for (let segmentIndex of indices) {
+			for (let i = 0; i < test.tests.length; i++) {
+				if (i !== segmentIndex) {
+					test.tests[i].skip = true;
+				}
+			}
+			test = test.tests[segmentIndex];
+		}
 	}
 
-	return tests;
+	return true;
+}
+
+/**
+ * Get the path of indices from `test` down to a descendant whose `id` matches.
+ * Each index steps into the next `.tests` array as you descend, so `[1, 0]` means
+ * `test.tests[1].tests[0]`. Returns `null` if no descendant matches.
+ *
+ * @param {object} test Test object to search under.
+ * @param {string} id Identifier to find.
+ * @returns {number[] | null}
+ */
+function getPath (test, id) {
+	if (!test?.tests) {
+		return null;
+	}
+
+	for (let i = 0; i < test.tests.length; i++) {
+		if (test.tests[i].id === id) {
+			return [i];
+		}
+
+		let rest = getPath(test.tests[i], id);
+		if (rest) {
+			return [i, ...rest];
+		}
+	}
+
+	return null;
 }
 
 // Used in `interceptConsole()` to maintain isolated contexts for each function call.

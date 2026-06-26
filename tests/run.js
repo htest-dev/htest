@@ -20,9 +20,35 @@ export default {
 				},
 				{
 					name: "run() returning a promise",
-					run: () => new Promise(resolve => setInterval(() => resolve("foo"), 100)),
+					run: () => new Promise(resolve => setTimeout(() => resolve("foo"), 100)),
 				},
 			],
+		},
+		{
+			name: "afterAll runs in --ci mode (issue #168)",
+			skip: typeof globalThis.process === "undefined",
+			async run () {
+				let { spawnSync } = await import("node:child_process");
+				let { writeFileSync, rmSync } = await import("node:fs");
+				let { tmpdir } = await import("node:os");
+				let { join } = await import("node:path");
+
+				let fixture = join(tmpdir(), "htest-168.js");
+				writeFileSync(
+					fixture,
+					`export default { async afterAll () { await new Promise(r => setTimeout(r, 50)); process.stderr.write("[test] afterAll ran"); }, tests: [{ run: () => 1, expect: 1 }] };`,
+				);
+
+				let { stderr } = spawnSync(
+					process.execPath,
+					[join(process.cwd(), "bin/htest.js"), fixture, "--ci"],
+					{ encoding: "utf8" },
+				);
+				rmSync(fixture);
+
+				return stderr.includes("[test] afterAll ran");
+			},
+			expect: true,
 		},
 		{
 			name: "Aborting",

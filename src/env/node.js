@@ -391,7 +391,7 @@ export default {
 
 				console[root.stats.fail > 0 ? "error" : "log"](tree);
 
-				process.exit(root.stats.fail > 0 ? 1 : 0);
+				process.exitCode = root.stats.fail > 0 ? 1 : 0;
 			}
 			return;
 		}

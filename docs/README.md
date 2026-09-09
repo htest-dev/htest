@@ -143,12 +143,12 @@ export default {
 	data: { // custom inherited data
 		arr: [1, 2, 3]
 	},
-	getName () {
+	get name () {
 		if (this.level === 1) {
 			return "#" + this.data.method + "()";
 		}
 
-		return `should return ${this.expect} when the value is ${this.args[0]}`;
+		return `should return ${this.expect} when the value is ${this.arg}`;
 	}
 	tests: [
 		{
@@ -197,8 +197,8 @@ export default {
 ```
 
 Here we moved the commonalities to test parents and used inherited data to pass the array and code to be tested to the tests.
-We are also only specifying a name when it's non-obvious, and using the `getName` method to generate the name for us
-(even with no `getName` method, hTest will generate a name for us based on the test parameters).
+We are also only specifying a name when it's non-obvious, and using a `get name()` getter to generate the name for us
+(even with no name getter, hTest will generate a name for us based on the test parameters).
 
 Notice that there is a spectrum between how much you want to abstract away and how much you want to specify in each test.
 It’s up to you where your tests would be in that spectrum.

@@ -1,0 +1,75 @@
+<style>
+.page {
+	display: flex;
+	flex-flow: column;
+	width: var(--max-page-width);
+}
+main {
+	display: flex;
+	flex-flow: column;
+	width: var(--max-page-width);
+	flex: 1;
+}
+#form {
+	display: flex;
+	flex-flow: column;
+	gap: .3rem;
+	flex: 1;
+	align-items: end;
+	width: 100%;
+	flex: 1;
+}
+#editor {
+	flex: 1;
+	width: 100%;
+	width: var(--max-page-width);
+	height: 100%;
+}
+</style>
+
+<form id="form">
+<button>Run</button>
+<textarea id="editor" class="language-javascript prism-live">export default {
+	name: "Addition",
+	run: (a, b) => a + b,
+	tests: [
+		{
+			arg: 1,
+			expect: 1
+		},
+		{
+			args: [1, 2, 3],
+			expect: 6
+		},
+		{
+			args: [],
+			expect: undefined
+		},
+	]
+};
+</textarea>
+
+
+</form>
+<script type="module" src="https://prismjs.com/prism.js"></script>
+<script type="module" src="https://live.prismjs.com/src/prism-live.mjs?load=javascript"></script>
+<link rel="stylesheet" href="https://live.prismjs.com/prism-live.css">
+<script type="module">
+import run from "../src/run.js";
+const editor = document.getElementById('editor');
+
+function runTests() {
+	let code = editor.value;
+	code = code.replace("\u200B", ""); // Remove zero-width space added by Prism Live
+	import(`data:text/javascript,${encodeURIComponent(code)}`).then(m => {
+		run(m.default);
+	});
+};
+
+form.onsubmit = e => {
+	e?.preventDefault();
+	runTests();
+};
+
+runTests();
+</script>

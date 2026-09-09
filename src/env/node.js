@@ -208,8 +208,8 @@ async function rerun (options, urls) {
 
 				let test = module.default ?? Object.values(module);
 
-				if (Object.isExtensible(test)) {
-					test.file = old.test.file;
+				if (old.test.file && typeof test === "object") {
+					Test.files.set(test, old.test.file);
 				}
 
 				test = new Test(test, currentRoot.test);
@@ -342,16 +342,16 @@ export default {
 			[...loadedFiles].map(async url => {
 				let module = await import(url);
 				let test = module.default ?? module;
-				if (test && typeof test === "object" && Object.isExtensible(test) && !test.file) {
+				if (test && typeof test === "object") {
 					let fileUrl = new URL(url);
 					fileUrl.search = "";
-					test.file = {
+					Test.files.set(test, {
 						label: path.relative(
 							isDirectory ? location : path.dirname(location),
 							fileURLToPath(url),
 						),
 						path: fileUrl.href,
-					};
+					});
 				}
 			}),
 		);

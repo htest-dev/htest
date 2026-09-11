@@ -25,6 +25,40 @@ const filenamePatterns = {
 	exclude: /^index/,
 };
 
+/**
+ * A test that reports why its file could not be loaded, so one unloadable file
+ * fails on its own instead of taking down the whole run.
+ * @param {Error} err
+ * @param {string} name
+ */
+function failedTest (err, name) {
+	return {
+		name,
+		run: () => {
+			throw err;
+		},
+	};
+}
+
+/**
+ * Import a test file, or produce a failing test in its place if it cannot be loaded.
+ * @param {URL} url
+ * @param {string} base - Directory to label the file against, the same one loaded files are labeled against.
+ */
+async function importTests (url, base) {
+	// Before the import, not after: a file that fails to load must still get its directory watched,
+	// or fixing it is never noticed. Explicit rather than via the resolve hook, which needs Node ≥ 22.15.
+	loadedFiles.add(url.href);
+
+	try {
+		let module = await import(url);
+		return module.default ?? Object.values(module);
+	}
+	catch (err) {
+		return failedTest(err, path.relative(base, fileURLToPath(url)));
+	}
+}
+
 async function getTestsIn (dir) {
 	let filenames = fs
 		.readdirSync(dir)
@@ -34,20 +68,7 @@ async function getTestsIn (dir) {
 	let cwd = process.cwd();
 	let paths = filenames.map(name => path.resolve(cwd, dir, name));
 
-	return (
-		await Promise.all(
-			paths.map(path => {
-				path = pathToFileURL(path);
-				loadedFiles.add(path.href);
-				return import(path).then(
-					module => module.default ?? Object.values(module),
-					err => {
-						console.error(`Error importing tests from ${path}:`, err);
-					},
-				);
-			}),
-		)
-	).flat();
+	return (await Promise.all(paths.map(path => importTests(pathToFileURL(path), dir)))).flat();
 }
 
 // AbortSignal (not a plain boolean) because runAll() shallow-copies options per child —
@@ -183,17 +204,18 @@ async function rerun (options, urls) {
 					continue;
 				}
 
-				// Import before mutating stats — on error, keep the old subtree intact
 				let uncached = new URL(url);
 				uncached.searchParams.set("htest", version);
 
-				let module;
+				let test;
 				try {
-					module = await import(uncached.href);
+					let module = await import(uncached.href);
+					test = module.default ?? Object.values(module);
 				}
 				catch (err) {
-					console.error(`Error importing ${url}:`, err);
-					continue;
+					// Swap in a failing test rather than keeping the stale passing one,
+					// which would leave a file that just broke showing green.
+					test = failedTest(err, old.test.file.label);
 				}
 
 				// Subtract old stats, swap in the new subtree
@@ -205,8 +227,6 @@ async function rerun (options, urls) {
 					currentRoot.timeTakenAsync =
 						(currentRoot.timeTakenAsync ?? 0) - old.timeTakenAsync;
 				}
-
-				let test = module.default ?? Object.values(module);
 
 				if (Object.isExtensible(test)) {
 					test.file = old.test.file;
@@ -319,6 +339,7 @@ export default {
 
 		let tests;
 		let isDirectory = fs.statSync(location, { throwIfNoEntry: false })?.isDirectory();
+		let base = isDirectory ? location : path.dirname(location);
 		if (isDirectory) {
 			// Directory provided, fetch all files
 			tests = await getTestsIn(location);
@@ -329,12 +350,7 @@ export default {
 			let modules = globSync(location).flatMap(paths => {
 				// Convert paths to imported modules
 				paths = getType(paths) === "string" ? [paths] : paths;
-				return paths.map(p => {
-					p = path.resolve(process.cwd(), p);
-					p = pathToFileURL(p);
-					loadedFiles.add(p.href);
-					return import(p).then(m => m.default ?? Object.values(m));
-				});
+				return paths.map(p => importTests(pathToFileURL(path.resolve(process.cwd(), p)), base));
 			});
 			tests = (await Promise.all(modules)).flat();
 		}
@@ -344,16 +360,15 @@ export default {
 		// Tag each module's default with its source file. Re-imports return the cached namespace — no I/O.
 		await Promise.all(
 			[...loadedFiles].map(async url => {
-				let module = await import(url);
-				let test = module.default ?? module;
+				// loadedFiles holds transitive imports too, so a failure here was already surfaced —
+				// by this file's own failing test, or by the test file that imported it.
+				let module = await import(url).catch(() => null);
+				let test = module?.default ?? module;
 				if (test && typeof test === "object" && Object.isExtensible(test) && !test.file) {
 					let fileUrl = new URL(url);
 					fileUrl.search = "";
 					test.file = {
-						label: path.relative(
-							isDirectory ? location : path.dirname(location),
-							fileURLToPath(url),
-						),
+						label: path.relative(base, fileURLToPath(url)),
 						path: fileUrl.href,
 					};
 				}

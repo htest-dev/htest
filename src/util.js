@@ -6,6 +6,16 @@ import * as objects from "./objects.js";
 export const IS_NODEJS = typeof process === "object" && process?.versions?.node;
 
 /**
+ * Make a thrown value safe to annotate and to read `.message` and `.stack` from, since anything at
+ * all can be thrown. Objects pass through; primitives are wrapped, with the original kept as `cause`.
+ * @param {*} value
+ * @returns {Error | object}
+ */
+export function asError (value) {
+	return Object(value) === value ? value : new Error(String(value), { cause: value });
+}
+
+/**
  * Determine the internal JavaScript [[Class]] of an object.
  * @param {*} value - Value to check
  * @returns {string}

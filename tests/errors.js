@@ -74,6 +74,16 @@ export default {
 						expect: "foo",
 					},
 				},
+				{
+					name: "Thrown value is not an Error (issue #183)",
+					arg: {
+						beforeEach () {
+							throw "boom";
+						},
+						arg: "foo",
+						expect: "foo",
+					},
+				},
 			],
 		},
 		{
@@ -263,6 +273,54 @@ export default {
 						return { pass, skipped };
 					},
 					expect: { pass: 1, skipped: 1 },
+				},
+			],
+		},
+		{
+			name: "Non-Error thrown values (issue #183)",
+			description: "Throwing a primitive is legal JS, and must not take down the runner.",
+			async run (test) {
+				let result = await runTest(test);
+				return result.pass;
+			},
+			tests: [
+				{
+					name: "Reports the value, with no phantom stack line",
+					description: "A primitive has no .stack, so interpolating one appends a bare `undefined`.",
+					async run (test) {
+						let result = await runTest(test);
+						return result.details[0];
+					},
+					arg: {
+						run () {
+							throw "boom";
+						},
+						expect: 1,
+					},
+					check: (actual, expect) => actual.includes(expect) && !actual.includes("undefined"),
+					expect: "boom",
+				},
+				{
+					name: "Keeps the thrown value as cause",
+					description: "Wrapping is what makes .message and .stack safe to read; the original must survive it.",
+					arg: {
+						run () {
+							throw "boom";
+						},
+						throws: error => error.cause === "boom",
+					},
+					expect: true,
+				},
+				{
+					name: "A falsy value still counts as a throw",
+					description: "Otherwise throws: false passes for a test that did throw.",
+					arg: {
+						run () {
+							throw null;
+						},
+						throws: false,
+					},
+					expect: false,
 				},
 			],
 		},

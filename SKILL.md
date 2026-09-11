@@ -71,7 +71,7 @@ All properties are optional and inherit from parent to child.
 | `args`      | Array of arguments passed to `run`. Non-arrays auto-wrapped. `arg` takes precedence                                                                                                                                  |
 | `expect`    | Expected result. Deep equality by default                                                                                                                                                                             |
 | `getExpect` | Function to generate expected value dynamically. Called like `run`: `getExpect.apply(test, args)`. Inherited. `expect` takes precedence if both are set. If the getter throws, falls through to default (`args[0]`) |
-| `throws`    | `true` (any error), `false` (asserts no error thrown), Error subclass (`TypeError`), or predicate `e => e.code === "ENOENT"`. Inherited                                                                               |
+| `throws`    | `true` (any error), `false` (asserts no error thrown), Error subclass (`TypeError`), or predicate `e => e.code === "ENOENT"`. Inherited. A thrown non-Error (e.g. a string) is wrapped in an `Error`, with the original on `.cause`                                                                               |
 
 ### Structure
 

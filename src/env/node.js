@@ -305,7 +305,11 @@ export default {
 					resolved = { ...resolved, url: baseUrl.href, shortCircuit: true };
 				}
 
-				loadedFiles.add(resolved.url);
+				// Modules resolved with import attributes, e.g. `with { type: "json" }`, hold data rather
+				// than tests, and cannot be re-imported below without repeating those attributes.
+				if (Object.keys(context.importAttributes).length === 0) {
+					loadedFiles.add(resolved.url);
+				}
 
 				return resolved;
 			},

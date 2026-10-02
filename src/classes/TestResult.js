@@ -1,5 +1,6 @@
 import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
+import ThrownValue, { asError } from "./ThrownValue.js";
 import { stripFormatting } from "../format-console.js";
 import { delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
 import { formatDiff } from "../util/format-diff.js";
@@ -86,6 +87,7 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.beforeAll?.();
 				}
 				catch (e) {
+					e = asError(e);
 					e.source = "beforeAll";
 					this.error = error = e;
 				}
@@ -96,6 +98,7 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.beforeEach?.apply(this.test, this.test.args);
 				}
 				catch (e) {
+					e = asError(e);
 					e.source = "beforeEach";
 					this.error = error = e;
 				}
@@ -115,6 +118,8 @@ export default class TestResult extends BubblingEventTarget {
 					}
 				}
 				catch (e) {
+					e = asError(e);
+
 					// Duck-type assertion errors (Node assert, Chai, etc.) — use their actual/expected for diffs
 					if ("actual" in e) {
 						this.actual = e.actual;
@@ -128,6 +133,7 @@ export default class TestResult extends BubblingEventTarget {
 				await this.test.afterEach?.apply(this.test, this.test.args);
 			}
 			catch (e) {
+				e = asError(e);
 				e.source = "afterEach";
 				this.error ??= e;
 				error ??= e;
@@ -139,6 +145,7 @@ export default class TestResult extends BubblingEventTarget {
 					await this.test.afterAll?.();
 				}
 				catch (e) {
+					e = asError(e);
 					e.source = "afterAll";
 					this.error ??= e;
 					error ??= e;
@@ -192,6 +199,7 @@ export default class TestResult extends BubblingEventTarget {
 						await this.test.beforeAll?.();
 					}
 					catch (e) {
+						e = asError(e);
 						e.source = "beforeAll";
 						error = e;
 					}
@@ -267,6 +275,7 @@ export default class TestResult extends BubblingEventTarget {
 	evaluateThrown () {
 		let test = this.test;
 		let ret = { pass: !!this.error, details: [] };
+		let thrown = this.error instanceof ThrownValue ? this.error.cause : this.error;
 
 		// We may have more picky criteria for the error
 		if (ret.pass) {
@@ -277,7 +286,7 @@ export default class TestResult extends BubblingEventTarget {
 			}
 			else if (test.throws.prototype instanceof Error) {
 				// We want a specific subclass, e.g. TypeError
-				ret.pass &&= this.error instanceof test.throws;
+				ret.pass &&= thrown instanceof test.throws;
 
 				if (!ret.pass) {
 					ret.details.push(
@@ -286,7 +295,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 			}
 			else if (typeof test.throws === "function") {
-				ret.pass &&= test.throws(this.error);
+				ret.pass &&= test.throws(thrown);
 
 				if (!ret.pass) {
 					ret.details.push(
@@ -331,12 +340,14 @@ export default class TestResult extends BubblingEventTarget {
 					ret.pass = test.check(this.mapped.actual, this.mapped.expect);
 				}
 				catch (e) {
+					e = asError(e);
 					this.error = new Error(
 						`check() failed (working with mapped values). ${e.message}`,
 					);
 				}
 			}
 			catch (e) {
+				e = asError(e);
 				this.error = new Error(`map() failed. ${e.message}`);
 			}
 		}
@@ -345,6 +356,7 @@ export default class TestResult extends BubblingEventTarget {
 				ret.pass = test.check(this.actual, test.expect);
 			}
 			catch (e) {
+				e = asError(e);
 				this.error = new Error(`check() failed. ${e.message}`);
 			}
 		}

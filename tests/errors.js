@@ -285,29 +285,44 @@ export default {
 			},
 			tests: [
 				{
-					name: "Reports the value, with no phantom stack line",
-					description: "A primitive has no .stack, so interpolating one appends a bare `undefined`.",
+					name: "Reports the value, not an Error",
+					description: "A string was thrown, so the report must quote it, not claim an Error or show hTest's own stack.",
 					async run (test) {
 						let result = await runTest(test);
 						return result.details[0];
 					},
-					arg: {
-						run () {
-							throw "boom";
+					tests: [
+						{
+							name: "From run()",
+							arg: {
+								run () {
+									throw "boom";
+								},
+								expect: 1,
+							},
+							expect: `Got error "boom"\n"boom"`,
 						},
-						expect: 1,
-					},
-					check: (actual, expect) => actual.includes(expect) && !actual.includes("undefined"),
-					expect: "boom",
+						{
+							name: "From a hook",
+							arg: {
+								beforeEach () {
+									throw "boom";
+								},
+								arg: "foo",
+								expect: "foo",
+							},
+							expect: `beforeEach: "boom"`,
+						},
+					],
 				},
 				{
-					name: "Keeps the thrown value as cause",
-					description: "Wrapping is what makes .message and .stack safe to read; the original must survive it.",
+					name: "Passes the thrown value to throws as is",
+					description: "The wrapper is internal, so a predicate must see what the test threw.",
 					arg: {
 						run () {
 							throw "boom";
 						},
-						throws: error => error.cause === "boom",
+						throws: error => error === "boom",
 					},
 					expect: true,
 				},

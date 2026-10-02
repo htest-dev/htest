@@ -1,7 +1,8 @@
 import Test from "./Test.js";
 import BubblingEventTarget from "./BubblingEventTarget.js";
+import ThrownValue, { asError } from "./ThrownValue.js";
 import { stripFormatting } from "../format-console.js";
-import { asError, delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
+import { delay, formatDuration, interceptConsole, pluralize, stringify } from "../util.js";
 import { formatDiff } from "../util/format-diff.js";
 
 /**
@@ -274,6 +275,7 @@ export default class TestResult extends BubblingEventTarget {
 	evaluateThrown () {
 		let test = this.test;
 		let ret = { pass: !!this.error, details: [] };
+		let thrown = this.error instanceof ThrownValue ? this.error.cause : this.error;
 
 		// We may have more picky criteria for the error
 		if (ret.pass) {
@@ -284,7 +286,7 @@ export default class TestResult extends BubblingEventTarget {
 			}
 			else if (test.throws.prototype instanceof Error) {
 				// We want a specific subclass, e.g. TypeError
-				ret.pass &&= this.error instanceof test.throws;
+				ret.pass &&= thrown instanceof test.throws;
 
 				if (!ret.pass) {
 					ret.details.push(
@@ -293,7 +295,7 @@ export default class TestResult extends BubblingEventTarget {
 				}
 			}
 			else if (typeof test.throws === "function") {
-				ret.pass &&= test.throws(this.error);
+				ret.pass &&= test.throws(thrown);
 
 				if (!ret.pass) {
 					ret.details.push(

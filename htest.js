@@ -46,7 +46,7 @@
 					text = text();
 				}
 				catch (err) {
-					text = `<div onclick="console.log(\`${err.stack}\`)">${err}</div>`;
+					text = `<div onclick="console.log(\`${err?.stack ?? err}\`)">${err}</div>`;
 				}
 			}
 

@@ -74,6 +74,16 @@ export default {
 						expect: "foo",
 					},
 				},
+				{
+					name: "Thrown value is not an Error (issue #183)",
+					arg: {
+						beforeEach () {
+							throw "boom";
+						},
+						arg: "foo",
+						expect: "foo",
+					},
+				},
 			],
 		},
 		{
@@ -263,6 +273,69 @@ export default {
 						return { pass, skipped };
 					},
 					expect: { pass: 1, skipped: 1 },
+				},
+			],
+		},
+		{
+			name: "Non-Error thrown values (issue #183)",
+			description: "Throwing a primitive is legal JS, and must not take down the runner.",
+			async run (test) {
+				let result = await runTest(test);
+				return result.pass;
+			},
+			tests: [
+				{
+					name: "Reports the value, not an Error",
+					description: "A string was thrown, so the report must quote it, not claim an Error or show hTest's own stack.",
+					async run (test) {
+						let result = await runTest(test);
+						return result.details[0];
+					},
+					tests: [
+						{
+							name: "From run()",
+							arg: {
+								run () {
+									throw "boom";
+								},
+								expect: 1,
+							},
+							expect: `Got error "boom"\n"boom"`,
+						},
+						{
+							name: "From a hook",
+							arg: {
+								beforeEach () {
+									throw "boom";
+								},
+								arg: "foo",
+								expect: "foo",
+							},
+							expect: `beforeEach: "boom"`,
+						},
+					],
+				},
+				{
+					name: "Passes the thrown value to throws as is",
+					description: "The wrapper is internal, so a predicate must see what the test threw.",
+					arg: {
+						run () {
+							throw "boom";
+						},
+						throws: error => error === "boom",
+					},
+					expect: true,
+				},
+				{
+					name: "A falsy value still counts as a throw",
+					description: "Otherwise throws: false passes for a test that did throw.",
+					arg: {
+						run () {
+							throw null;
+						},
+						throws: false,
+					},
+					expect: false,
 				},
 			],
 		},

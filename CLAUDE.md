@@ -38,6 +38,7 @@ src/
     Test.js             Test tree: property inheritance, structure, auto-naming
     TestResult.js       Execution, evaluation, output formatting, event-driven stats
     BubblingEventTarget.js  EventTarget subclass with bubbling support
+    ThrownValue.js      Wraps a thrown primitive so it can be handled like an Error (asError)
   env/
     node.js             Node env: file resolution, --watch orchestration, CI mode
     console.js          Browser console env (console.group output)

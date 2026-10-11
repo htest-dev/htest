@@ -23,6 +23,14 @@ const INHERITED_PROPS = [
  * Represents a single test or a group of tests
  */
 export default class Test {
+	/**
+	 * Source file of each test definition, e.g. `{ label: "check.js", path: "file:///…/check.js" }`.
+	 * Populated by the environment, which cannot store it on the test object itself:
+	 * test definitions come from modules that may hold unrelated data.
+	 * @type {WeakMap<object, { label: string, path: string }>}
+	 */
+	static files = new WeakMap();
+
 	data = {};
 
 	constructor (test, parent) {
@@ -62,6 +70,12 @@ export default class Test {
 			}
 		}
 		Object.defineProperties(this, descriptors);
+
+		// Only set it if tagged: an own `file: undefined` would block inheriting the parent's below
+		let file = Test.files.get(test);
+		if (file) {
+			this.file = file;
+		}
 
 		if (typeof this.data === "function") {
 			this.getData = this.data;

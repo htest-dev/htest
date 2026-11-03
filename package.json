@@ -59,20 +59,16 @@
   },
   "homepage": "https://htest.dev",
   "devDependencies": {
-    "@11ty/eleventy": "^3.1.6",
-    "@11ty/eleventy-navigation": "^1.0.5",
     "@stylistic/eslint-plugin": "latest",
-    "eleventy-plugin-toc": "^1.1.5",
+    "docspire": "^0",
     "eslint": "latest",
     "globals": "latest",
-    "markdown-it-anchor": "^9.2.0",
-    "markdown-it-attrs": "^4.3.1",
-    "prettier": "^3.8.4",
-    "prettier-plugin-brace-style": "^0.10.1",
-    "prettier-plugin-merge": "^0.10.1",
+    "prettier": "^3.9.10",
+    "prettier-plugin-brace-style": "^0.10.4",
+    "prettier-plugin-merge": "^0.10.2",
     "prettier-plugin-space-before-function-paren": "^0.1.0",
     "release-it": "latest",
-    "typedoc": "^0.28.19"
+    "typedoc": "^0.28.20"
   },
   "dependencies": {
     "ansi-escapes": "^7.3.0",

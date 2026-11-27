@@ -140,7 +140,7 @@ For a custom comparison, use an inline function — no import needed:
 For pre-built utilities and composition, import the check module:
 
 ```js
-import check from "htest.dev/check";
+import * as check from "htest.dev/check";
 
 export default {
 	run: computeValue,

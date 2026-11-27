@@ -36,6 +36,12 @@
     },
     "./env": {
       "import": "./src/env/index.js"
+    },
+    "./run": {
+      "import": "./src/run.js"
+    },
+    "./cli": {
+      "import": "./src/cli.js"
     }
   },
   "bin": {

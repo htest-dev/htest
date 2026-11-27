@@ -230,7 +230,7 @@ The supported options are:
 #### Examples
 
 ```js
-import * as check from "../node_modules/htest.dev/src/check.js";
+import * as check from "htest.dev/check";
 
 export default {
 	run: Math.random,
@@ -243,7 +243,7 @@ You can even do logical operations on them:
 
 ```js
 import getHue from "../src/getHue.js";
-import * as check from "../node_modules/htest.dev/src/check.js";
+import * as check from "htest.dev/check";
 
 export default {
 	run (color) { getHue(color) },
@@ -260,7 +260,7 @@ Or, for nicer syntax:
 
 ```js
 import getHue from "../src/getHue.js";
-import {and, is, proximity } from "../node_modules/htest.dev/src/check.js";
+import {and, is, proximity } from "htest.dev/check";
 
 export default {
 	run (color) { getHue(color) },

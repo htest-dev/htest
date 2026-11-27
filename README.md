@@ -155,7 +155,7 @@ hTest aims to eliminate all boilerplate, so you can focus on writing the actual 
 
 
 
-hTest can be used in one of two ways: [JS-first](docs/define/js/) or [HTML-first](https://html.htest.dev/).
+hTest can be used in one of two ways: [JS-first](docs/define/) or [HTML-first](https://html.htest.dev/).
 
 <table>
 <thead>

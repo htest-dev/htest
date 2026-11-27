@@ -1,6 +1,6 @@
 # CLI
 
-When [defining tests with JS](../../define/js/), most of the time you would want to run them in Node.
+When [defining tests with JS](../../define/), most of the time you would want to run them in Node.
 This allows you to use CI (continuous integration) services like Travis CI and GitHub Actions,
 post-commit hooks, and other tools that run on the command line.
 
@@ -9,7 +9,7 @@ post-commit hooks, and other tools that run on the command line.
 For your tests to work with the Node.js runner, your JS code needs to be compatible with Node.js.
 You need at least Node.js 16.x, but it is recommended to use the latest LTS version.
 
-While to [run HTML tests](../define/html) it may be enough to simply link to hTest’s JS and CSS files,
+While to [run HTML tests](https://html.htest.dev/) it may be enough to simply link to hTest’s JS and CSS files,
 to run JS tests in Node, you need to use npm to install hTest:
 
 ```sh

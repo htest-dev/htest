@@ -1,5 +1,6 @@
 ---
-nav: Browser (HTML reftests)
+title: Browser (HTML reftests)
+order: 2
 ---
 
 # Running tests in the browser (as HTML reftests)

@@ -3,9 +3,13 @@ import stylistic from "@stylistic/eslint-plugin";
 
 export default [
 	{
+		// Built docs site, including vendored packages with ESLint configs of their own
+		ignores: ["_site/"],
+	},
+	{
 		files: ["src/**/*.js", "tests/**/*.js", "bin/**/*.js", "htest.js"],
 		languageOptions: {
-			ecmaVersion: 2022,
+			ecmaVersion: "latest",
 			sourceType: "module",
 			globals: {
 				...globals.browser,

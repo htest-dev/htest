@@ -15,7 +15,7 @@
 		"Home": "https://htest.dev",
 		"GitHub": "https://github.com/htest-dev/htest"
 	},
-	"favicon": "assets/images/logo.svg",
+	"favicon": "docspire/assets/images/logo.svg",
 	"hostedBaseUrl": "https://htest.dev/api",
 	"readme": "none"
 }

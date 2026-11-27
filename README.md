@@ -1,6 +1,6 @@
 <header class="readme-only">
 
-# <img src="assets/images/logo.svg" class="logo" width="22"> **h**Test
+# <img src="https://htest.dev/assets/images/logo.svg" class="logo" width="22"> **h**Test
 
 Declarative, boilerplate-free unit testing, for everyone.
 
@@ -8,7 +8,7 @@ https://htest.dev
 <hr class="readme-only" />
 </header>
 
-<nav class="sidebar" id="main-contents">
+<nav class="readme-only" id="main-contents">
 
 - [Installation](#installation)
 - [Quick Start](#quick-start)
@@ -20,7 +20,7 @@ https://htest.dev
 
 </nav>
 
-<main>
+<section class="readme-only">
 
 ## Features at a glance
 
@@ -37,6 +37,8 @@ https://htest.dev
 - <span>✅</span> **Configurable**: Use a config file for setup scripts, CLI flags, and shared options across your test suite.
 - <span>✅</span> **Optional HTML-first mode**: Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!
 - <span>✅</span> **AI-agent friendly**: Ships with a [`SKILL.md`](SKILL.md) reference for AI coding agents — teach Claude Code, Cursor, Copilot, and others to write hTest tests correctly.
+
+</section>
 
 ## Installation
 
@@ -155,7 +157,7 @@ hTest aims to eliminate all boilerplate, so you can focus on writing the actual 
 
 
 
-hTest can be used in one of two ways: [JS-first](docs/define/js/) or [HTML-first](https://html.htest.dev/).
+hTest can be used in one of two ways: [JS-first](docs/define/) or [HTML-first](https://html.htest.dev/).
 
 <table>
 <thead>
@@ -317,5 +319,3 @@ Any help with these would be greatly appreciated!
 
 * [Parsel](https://parsel.verou.me/test.html)
 * [Stretchy](https://stretchy.verou.me/test.html)
-
-</main>

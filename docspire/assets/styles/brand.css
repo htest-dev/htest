@@ -1,0 +1,50 @@
+:root {
+	/* The logo's fill, #65a30d */
+	--color-accent: oklch(64.8% 0.175 132);
+}
+
+.header-start .logo {
+	font-weight: normal;
+	color: inherit;
+
+	strong {
+		/* A bit darker than in the logo to visually match it */
+		--color-core: var(--color-accent);
+		color: var(--color-core-55);
+		margin-inline-end: -0.13em;
+	}
+}
+
+.site-footer {
+	margin-block-start: var(--size-xl);
+	color: var(--ui-color-text-quiet);
+}
+
+thead th {
+	/* Darker than the accent, so white text reaches WCAG AA */
+	--color-core: var(--color-accent);
+	background: var(--color-core-45);
+	color: white;
+}
+
+video,
+img {
+	max-width: 100%;
+}
+
+/* A sidebar with no pages in it is an empty column and a toggle that opens nothing */
+#sidebar:not(:has(li)),
+#sidebar:not(:has(li)) ~ .sidebar-toggle {
+	display: none;
+}
+
+/* Parts of README.md only GitHub and npm readers need, such as its table of contents.
+   Scoped like Docspire's content layout, so a readme-only <section> loses its display: flex */
+:is(main, .docs-content) .readme-only {
+	display: none;
+}
+
+/* The landing plugin resets the tagline's margins but not the title's, so the browser's 0.67em pushes them apart */
+.hero h1 {
+	margin-block-end: 0;
+}

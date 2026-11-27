@@ -1,3 +1,7 @@
+---
+order: 2
+---
+
 # Test Runners
 
 Because hTest tests are declarative, this allows decoupling the test specification from the test execution.

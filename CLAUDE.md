@@ -11,8 +11,9 @@ Package: `htest.dev` | Repo: https://github.com/htest-dev/htest | Site: https://
 | `npx htest tests/check.js` | Run a single test file |
 | `npm run eslint` | Lint |
 | `npm run eslint:fix` | Lint and auto-fix |
-| `npm run build` | TypeDoc (API docs) + Eleventy (docs site) |
-| `npm run dev` | Eleventy dev server for docs site |
+| `npm run build` | TypeDoc (API docs) + Docspire (docs site) into `_site/` |
+| `npm run serve` | Docspire dev server for docs site |
+| `npm run dev` | `netlify dev` on port 8844 (Docspire behind it, with `_redirects` applied) |
 | `npm run release` | Publish via release-it |
 
 No Prettier, no EditorConfig — ESLint only (`eslint.config.js`).
@@ -72,7 +73,10 @@ hTest tests itself. All test files in `tests/` use hTest's own declarative forma
 
 ## Project-specific conventions
 
-- `*.html` and `api/` are gitignored — both are generated (Eleventy and TypeDoc respectively)
+- Docs site: [Docspire](https://github.com/docspired/docspire), configured in `docspire.config.js`. Pages live in `docs/` (input dir), so `docs/define/README.md` publishes at `/define/`. The landing page is `README.md`, imported as `docs/index.md`; its front matter lives in `docs/index.11tydata.json`. README parts meant only for GitHub and npm carry `class="readme-only"`
+- `docspire/` is a Docspire theme plugin (brand and code colors, logo, footer) that html.htest.dev also uses: its build clones this repo
+- The site serves `htest.js`, `htest.css` and `src/` at the root (e.g. `https://htest.dev/src/render.js`): HTML-first test pages load them, so they must stay passthrough-copied
+- `_site/` (Docspire) and `api/` (TypeDoc) are generated and gitignored
 - `htest.js` at the project root is the **browser entry point** for HTML-first mode — it is not an ES module
 - `src/render.js` imports from `https://html.htest.dev/` — these are live CDN URLs, not local paths
 

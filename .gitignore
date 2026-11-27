@@ -1,6 +1,11 @@
 node_modules/
 *.html
 api/
+_site/
 
 # macOS
 .DS_Store
+
+# Local Netlify folder
+.netlify
+deno.lock

@@ -1,3 +1,7 @@
+---
+order: 3
+---
+
 # CLI
 
 When [defining tests with JS](../../define/), most of the time you would want to run them in Node.

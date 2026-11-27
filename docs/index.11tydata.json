@@ -1,0 +1,97 @@
+{
+	"layout": "landing",
+	"title": "Declarative unit testing",
+	"description": "Declarative unit testing, for everyone.",
+	"order": -1,
+	"hero": {
+		"title": "hTest",
+		"image": "/assets/images/logo.svg",
+		"actions": [
+			{
+				"text": "Get started",
+				"href": "/#quick-start"
+			},
+			{
+				"text": "Docs",
+				"href": "/overview/"
+			},
+			{
+				"text": "API",
+				"href": "/api/"
+			},
+			{
+				"text": "GitHub",
+				"href": "https://github.com/htest-dev/htest",
+				"icon": "github"
+			}
+		]
+	},
+	"features": [
+		{
+			"icon": "🤝",
+			"title": "Friendly",
+			"description": "Never used a unit test framework before? No problem! hTest is designed to be as friendly as possible to newcomers."
+		},
+		{
+			"icon": "📝",
+			"title": "Declarative",
+			"description": "Write your tests as nested object literals, with nice, readable syntax."
+		},
+		{
+			"icon": "🧩",
+			"title": "Flexible",
+			"description": "You decide where your tests live, across how many files, and how they’re grouped. Anything you can `import`, you can test."
+		},
+		{
+			"icon": "✂️",
+			"title": "Boilerplate-free",
+			"description": "Any commonalities between tests only specified once on the parent, and inherited. Anything that can be optional, is."
+		},
+		{
+			"icon": "⚡",
+			"title": "Quick to write",
+			"description": "Most tests only need two properties: `args` and `expect`. No more excuses for not testing your utility functions!"
+		},
+		{
+			"icon": "📦",
+			"title": "ESM-first",
+			"description": "Written in ESM from the get-go."
+		},
+		{
+			"icon": "🖥️",
+			"title": "CLI and browser",
+			"description": "Run your tests in the command line, in the browser, or both."
+		},
+		{
+			"icon": "🚦",
+			"title": "CI-ready",
+			"description": "Fully compatible with continuous integration and automated test running processes."
+		},
+		{
+			"icon": "🎯",
+			"title": "Jump to source",
+			"description": "Open a failing test's source file directly from the interactive CLI."
+		},
+		{
+			"icon": "👀",
+			"title": "Watch mode",
+			"description": "Tests re-run automatically when source files change. No manual restart needed."
+		},
+		{
+			"icon": "⚙️",
+			"title": "Configurable",
+			"description": "Use a config file for setup scripts, CLI flags, and shared options across your test suite."
+		},
+		{
+			"icon": "🖱️",
+			"title": "Optional HTML-first mode",
+			"description": "Working on UI-heavy code? Write tests in HTML, with reactive evaluation and mock interactions!",
+			"href": "https://html.htest.dev/"
+		},
+		{
+			"icon": "🤖",
+			"title": "AI-agent friendly",
+			"description": "Ships with a [`SKILL.md`](SKILL.md) reference for AI coding agents — teach Claude Code, Cursor, Copilot, and others to write hTest tests correctly."
+		}
+	]
+}

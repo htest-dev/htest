@@ -1,3 +1,7 @@
+---
+order: 1
+---
+
 # Console
 
 This is a basic test runner that works in any environment that supports the Console API,

@@ -1,5 +1,7 @@
 # Docs
 /docs/define/html    https://html.htest.dev                        301
+/docs/               /overview/                                    301
+/docs/*              /:splat                                       301
 
 # RefTest class
 /src/html/reftest.js https://html.htest.dev/src/classes/RefTest.js 301

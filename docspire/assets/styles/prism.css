@@ -1,0 +1,70 @@
+/* Palette of the dark code blocks */
+:root {
+	--code-gray-20: oklch(32% 0.024 275);
+	--code-gray-80: oklch(84% 0.01 273);
+	--code-indigo-70: oklch(76% 0.105 281);
+	--code-indigo-80: oklch(84% 0.07 281);
+	--code-red-80: oklch(85% 0.084 20);
+	--code-green-80: oklch(82% 0.118 146);
+	--code-blue-80: oklch(84% 0.083 256);
+}
+
+/* Dark code blocks in both color schemes */
+code-block,
+:not(code-block) > pre:has(> code) {
+	--ui-background-code: var(--code-gray-20);
+	/* So the copy button and other light-dark() colors inside pick their dark values */
+	color-scheme: dark;
+	/* The language label: the dark-scheme value (base-45) is lost on the dark background */
+	--ui-color-text-quietest: var(--color-base-65);
+	color: white;
+	tab-size: 4;
+
+	.token.comment,
+	.token.prolog,
+	.token.doctype,
+	.token.cdata,
+	.token.operator,
+	.token.entity,
+	.token.punctuation {
+		color: var(--code-gray-80);
+	}
+
+	.token.property,
+	.token.tag,
+	.token.url {
+		color: var(--code-indigo-80);
+	}
+
+	.token.keyword {
+		font-weight: bold;
+		color: var(--code-indigo-70);
+	}
+
+	.token.symbol,
+	.token.deleted,
+	.token.important {
+		color: var(--code-red-80);
+	}
+
+	.token.boolean,
+	.token.constant,
+	.token.selector,
+	.token.attr-name,
+	.token.string,
+	.token.char,
+	.token.builtin,
+	.token.inserted {
+		color: var(--code-green-80);
+	}
+
+	.token.atrule,
+	.token.attr-value,
+	.token.number,
+	.token.variable,
+	.token.function,
+	.token.class-name,
+	.token.regex {
+		color: var(--code-blue-80);
+	}
+}

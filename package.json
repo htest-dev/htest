@@ -12,13 +12,14 @@
   ],
   "scripts": {
     "test": "bin/htest.js tests/index.js",
-    "build:html": "npx @11ty/eleventy --config=_build/eleventy.js",
-    "watch:html": "npx @11ty/eleventy --config=_build/eleventy.js --watch",
+    "build:html": "docspire",
+    "watch:html": "docspire --watch",
     "build": "npm run build:docs && npm run build:html",
     "build:docs": "npx typedoc",
     "watch:docs": "npx typedoc --watch --preserveWatchOutput",
     "watch": "npm run watch:html",
-    "dev": "npx @11ty/eleventy --config=_build/eleventy.js --serve",
+    "serve": "docspire --serve",
+    "dev": "netlify dev -p 8844",
     "eslint": "npx eslint .",
     "eslint:fix": "npx eslint . --fix",
     "release": "npm login && release-it"

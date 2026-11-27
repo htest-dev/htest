@@ -9,28 +9,19 @@ The basic idea is this:
 
 ```js
 import tests from "./test/index.js";
-import run from "./node_modules/htest.dev/src/run/console.js";
-
-run(tests);
-```
-
-which you can run from any HTML page.
-
-You can also import the `run()` function which takes a parameter for the environment:
-
-```js
-import tests from "./test/index.js";
-import run from "./node_modules/htest.dev/src/run.js";
+import run from "https://htest.dev/src/run.js";
 
 run(tests, {env: "console"});
 ```
+
+which you can run from any HTML page.
 
 In fact, you can leave the environment out. This defaults to `"auto"`,
 which detects whether the code is running in Node and uses the CLI output if so and the `console` environment otherwise.
 
 ```js
 import tests from "./test/index.js";
-import run from "./node_modules/htest.dev/src/run.js";
+import run from "https://htest.dev/src/run.js";
 
 run(tests);
 ```

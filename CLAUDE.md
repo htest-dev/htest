@@ -83,6 +83,8 @@ htest.dev          →  src/index.js
 htest.dev/check    →  src/check.js
 htest.dev/map      →  src/map.js
 htest.dev/env      →  src/env/index.js
+htest.dev/run      →  src/run.js
+htest.dev/cli      →  src/cli.js
 ```
 
 ## SKILL.md maintenance
